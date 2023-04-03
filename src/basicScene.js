@@ -8,7 +8,8 @@ import {initRenderer,
         createGroundPlaneXZ,
         translateMesh,
         rotateMesh,
-        getTree
+        getTree,
+        degreesToRadians
       } from "./util.js";
 
 let scene, renderer, camera, material, light, orbit; // Initial variables
@@ -26,19 +27,31 @@ window.addEventListener( 'resize', function(){onWindowResize(camera, renderer)},
 let axesHelper = new THREE.AxesHelper( 12 );
 scene.add( axesHelper );
 
-// create the ground plane
-let planes = [];
-let width = 100, length = 100;
-for (let i = 0; i < 5; i++) {
-  planes.push(createGroundPlaneXZ(width, length));
-  translateMesh(planes[i], 0, 0, i * (-length));
-  scene.add(planes[i]);
-
+function getGroupOfTrees(offset) {
+  let group = new THREE.Group();
   for (let j = 0; j < 100; j++) {
     let x = -width/2 + Math.random() * width;
-    let z = length/2 + (-length) * (Math.random() + i);
-    scene.add(getTree(x, z));
+    let z = length/2 + (-length) * Math.random();
+    group.add(getTree(x, z+offset));
   }
+  return group;
+}
+
+// create the ground plane
+let planes = [];
+let trees = [];
+let width = 100, length = 100;
+for (let i = 0; i < 5; i++) {
+  let newPlane = createGroundPlaneXZ(width, length);
+  // newPlane.position.z = i * (-length);
+  newPlane.translateZ(i * (-length));
+  newPlane.rotateX(degreesToRadians(-90));
+  planes.push(newPlane);
+  scene.add(newPlane);
+
+  let newTrees = getGroupOfTrees(-i * length);
+  trees.push(newTrees);
+  scene.add(newTrees);
 }
 
 // Mouse variables
@@ -64,16 +77,26 @@ scene.add(mesh);
 camera.lookAt(mesh.position);
 
 let currentPlaneIndex = 0;
+planes.forEach(function(plane) {
+  console.log(plane.position);
+});
 
 render();
 function render() {
    mouseRotation();
    updateCamera();
-   if(mesh.position.z > planes[currentPlaneIndex].position.z){
-    translateMesh(planes[currentPlaneIndex], 0, 0, length*(currentPlaneIndex+6));
-    //planes[currentPlaneIndex].position.z = planes[(currentPlaneIndex+planes.length-1)%planes.length].position.z - length;
-    currentPlaneIndex +=1;
+   console.log("Mesh position: ", mesh.position.z);
+   console.log("Current plane position: ", planes[currentPlaneIndex].position.z);
+
+   if(mesh.position.z < planes[currentPlaneIndex].position.z - length/2){
+     planes[currentPlaneIndex].position.z -= length * planes.length;
+     console.log("Current plane position after translation: ", planes[currentPlaneIndex].position.z);
+     trees[currentPlaneIndex] = getGroupOfTrees(planes[currentPlaneIndex].position.z);
+     trees[currentPlaneIndex].position.z = trees[currentPlaneIndex].position.z - 500;
+     console.log("Trees position: ", trees[currentPlaneIndex].position);
+     currentPlaneIndex = (currentPlaneIndex + 1) % planes.length;
    }
+
    requestAnimationFrame(render);
    mesh.position.z -= 0.5 ;
    renderer.render(scene, camera) // Render scene
