@@ -64,6 +64,9 @@ let meshSpeed = 0.5;
 camera.lookAt(mesh.position);
 
 let currentPlaneIndex = 0;
+var maxDistance = 800; 
+var initialOpacity = 1;
+let planeOpacity = 0;
 
 render();
 
@@ -72,15 +75,24 @@ function render() {
    updateCamera();
 
    if(mesh.position.z < planes[currentPlaneIndex].position.z - length){
-     planes[currentPlaneIndex].position.z -= length * planes.length;
-     currentPlaneIndex = (currentPlaneIndex + 1) % planes.length;
+    planes[currentPlaneIndex].position.z -= length * planes.length;
+    currentPlaneIndex = (currentPlaneIndex + 1) % planes.length;
    }
+   for (var i = 0; i < planes.length; i++) {
+    var distance = camera.position.distanceTo(planes[i].position);
+    console.log(distance);
+    updateOpacity(planes[i], distance);
+  } 
 
    requestAnimationFrame(render);
    mesh.position.z -= meshSpeed ;
-   renderer.render(scene, camera) // Render scene
+   renderer.render(scene, camera)
 }
 
+function updateOpacity(object, distance) {
+  var opacity = (distance > maxDistance) ? 1 : (1 - distance / maxDistance) * initialOpacity;
+  object.material.opacity = opacity;
+}
 
 function updateCamera() {
     camera.position.x = mesh.position.x;
