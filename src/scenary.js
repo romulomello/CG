@@ -4,7 +4,7 @@ import { degreesToRadians } from "../libs/util/util.js";
 /**
  * Create a simple XZ plane.
  */
-export function createGroundPlaneXZ(width, height, widthSegments = 10, heightSegments = 10, gcolor = null) {
+export function createGroundPlane(width, height, widthSegments = 10, heightSegments = 10, gcolor = null) {
     if (!gcolor) gcolor = "rgb(200,200,200)";
     let planeGeometry = new THREE.PlaneGeometry(width, height, widthSegments, heightSegments);
     let planeMaterial = new THREE.MeshLambertMaterial({ color: gcolor, side: THREE.DoubleSide, wireframe: true, transparent: true });
@@ -62,3 +62,12 @@ export function createTree(x, z) {
       plane.add(newTree);
     }
   }
+
+  export function setOpacity( obj, opacity ) {
+    obj.children.forEach((child)=>{
+      setOpacity( child, opacity );
+    });
+    if ( obj.material ) {
+      obj.material.opacity = opacity ;
+    };
+  };

@@ -9,8 +9,9 @@ import {initRenderer,
 } from "../libs/util/util.js";
 
 import {
-  createGroundPlaneXZ,
-  addTrees
+  createGroundPlane,
+  addTrees,
+  setOpacity
 } from "./scenary.js";
 
 import {
@@ -37,7 +38,7 @@ scene.add( axesHelper );
 let planes = [];
 let width = 100, length = 100;
 for (let i = 0; i < 8; i++) {
-  let newPlane = createGroundPlaneXZ(width, length);
+  let newPlane = createGroundPlane(width, length);
   addTrees(newPlane, width, length);
   newPlane.translateZ(i * (-length));
   newPlane.rotateX(degreesToRadians(-90));
@@ -64,9 +65,8 @@ let meshSpeed = 0.5;
 camera.lookAt(mesh.position);
 
 let currentPlaneIndex = 0;
-var maxDistance = 800; 
-var initialOpacity = 1;
-let planeOpacity = 0;
+let maxDistance = planes.length * length; 
+let initialOpacity = 1;
 
 render();
 
@@ -78,8 +78,8 @@ function render() {
     planes[currentPlaneIndex].position.z -= length * planes.length;
     currentPlaneIndex = (currentPlaneIndex + 1) % planes.length;
    }
-   for (var i = 0; i < planes.length; i++) {
-    var distance = camera.position.distanceTo(planes[i].position);
+   for (let i = 0; i < planes.length; i++) {
+    let distance = camera.position.distanceTo(planes[i].position);
     console.log(distance);
     updateOpacity(planes[i], distance);
   } 
@@ -90,8 +90,9 @@ function render() {
 }
 
 function updateOpacity(object, distance) {
-  var opacity = (distance > maxDistance) ? 1 : (1 - distance / maxDistance) * initialOpacity;
-  object.material.opacity = opacity;
+  let opacity = (distance > maxDistance) ? 1 : (1 - distance / maxDistance) * initialOpacity;
+  setOpacity(object, opacity);
+  // object.material.opacity = opacity;
 }
 
 function updateCamera() {
