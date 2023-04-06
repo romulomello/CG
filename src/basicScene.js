@@ -19,6 +19,8 @@ import {
   onDocumentMouseMove
 } from "./mouse.js";
 
+import { createJetPlane } from './jetPlane.js';
+
 let scene, renderer, camera, material, light, orbit; // Initial variables
 scene = new THREE.Scene();    // Create main scene
 renderer = initRenderer();    // Init a basic renderer
@@ -52,8 +54,11 @@ document.addEventListener('mousemove', onDocumentMouseMove);
 window.addEventListener('resize', function () { onWindowResize(camera, renderer) }, false);
 
 // create a cube
-let cubeGeometry = new THREE.BoxGeometry(4, 4, 4);
-let mesh = new THREE.Mesh(cubeGeometry, material);
+// let cubeGeometry = new THREE.BoxGeometry(4, 4, 4);
+// let jetMaterial = new THREE.MeshBasicMaterial({color: 0x333333});
+
+let mesh = createJetPlane();
+
 // position the cube
 mesh.position.set(0.0, 20, 0.0);
 // add the cube to the scene
@@ -80,7 +85,7 @@ function render() {
    }
    for (let i = 0; i < planes.length; i++) {
     let distance = camera.position.distanceTo(planes[i].position);
-    console.log(distance);
+    // console.log(distance);
     updateOpacity(planes[i], distance);
   } 
 
