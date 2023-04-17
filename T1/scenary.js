@@ -1,9 +1,6 @@
 import * as THREE from 'three';
 import { degreesToRadians } from "../libs/util/util.js";
 
-/**
- * Create a simple XZ plane.
- */
 export function createGroundPlane(width, height, widthSegments = 10, heightSegments = 10, gcolor = null) {
     if (!gcolor) gcolor = "rgb(200,200,200)";
     let planeGeometry = new THREE.PlaneGeometry(width, height, widthSegments, heightSegments);
@@ -54,7 +51,7 @@ export function createTree(x, z) {
   }
 
  export function addTrees(plane, width, length) {
-    for (let j = 0; j < 100; j++) {
+    for (let j = 0; j < 30; j++) {
       let x = -width/2 + Math.random() * width;
       let z = -length/2 + Math.random() * length;
       let newTree = createTree(x, z);
