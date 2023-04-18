@@ -39,9 +39,9 @@ scene.add( axesHelper );
 
 // create the ground plane
 let planes = [];
-let width = 100, length = 100;
-for (let i = 0; i < 7; i++) {
-  let newPlane = createGroundPlane(width, length);
+let width = 100, length = 50;
+for (let i = 0; i < 25; i++) {
+  let newPlane = createGroundPlane(width, length, 10, 10, "#356927");
   addTrees(newPlane, width, length);
   newPlane.translateZ(i * (-length));
   newPlane.rotateX(degreesToRadians(-90));

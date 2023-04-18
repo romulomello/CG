@@ -50,8 +50,9 @@ export function createTree(x, z) {
     return group;
   }
 
- export function addTrees(plane, width, length) {
-    for (let j = 0; j < 30; j++) {
+ export function addTrees(plane, width, length) { 
+    let n = 3 + Math.floor(Math.random() * 3);
+    for (let j = 0; j < n; j++) {
       let x = -width/2 + Math.random() * width;
       let z = -length/2 + Math.random() * length;
       let newTree = createTree(x, z);
