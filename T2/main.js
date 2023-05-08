@@ -12,15 +12,14 @@ import {initRenderer,
 import {
   createGroundPlane,
   addTrees,
-  setOpacity
+  setOpacity,
+  addWalls
 } from "./scenary.js";
 
 import {
   mouseRotation,
   onDocumentMouseMove
 } from "./mouse.js";
-
-// import { createJetPlane, createHelix } from './jetPlane.js';
 
 import { loadOBJFile, loadDAEFile } from './objImports.js';
 
@@ -41,10 +40,11 @@ scene.add( axesHelper );
 
 // create the ground plane
 let planes = [];
-let width = 100, length = 50;
+let width = 100, length = 50, height = 50;
 for (let i = 0; i < 25; i++) {
   let newPlane = createGroundPlane(width, length, 10, 10, "#356927");
   addTrees(newPlane, width, length);
+  addWalls(newPlane, width, length, height, "#356927");
   newPlane.translateZ(i * (-length));
   newPlane.rotateX(degreesToRadians(-90));
   planes.push(newPlane);
@@ -60,13 +60,15 @@ window.addEventListener('resize', function () { onWindowResize(camera, renderer)
 //Cria o Avião
 let obj = loadOBJFile("Arwing/", "Arwing");
 obj.then(airplane => {
+  airplane.name = "airplane";
 
   let turretObj = loadDAEFile("Turret/", "Turret");
   turretObj.then(turretScene => {
 
     let turret = turretScene.scene;
+    turret.name = "turret";
     turret.scale.set(0.1, 0.1, 0.1);
-    turret.position.set(0.0, 10, 0.0);
+    turret.position.set(0.0, 0.0, -300.0);
     scene.add(turret);
 
   airplane.position.set(0.0, 20, 0.0);
@@ -74,7 +76,7 @@ obj.then(airplane => {
 
   //Menu de configurações
   const settings = {
-    airplaneSpeed: 0,
+    airplaneSpeed: 1,
     distanceX: 1,
     distanceY: 1,
     sensX: 1,
@@ -94,7 +96,7 @@ obj.then(airplane => {
 
   const gui = new GUI()
   const controller = gui.addFolder('Settings');
-  controller.add(settings,'airplaneSpeed',0,3);
+  controller.add(settings,'airplaneSpeed',1,3);
   controller.add(settings,'distanceX',1,1.5);
   controller.add(settings,'distanceY',1,1.5);
   controller.add(settings,'sensX',0.2,1.8);
@@ -118,6 +120,7 @@ obj.then(airplane => {
     
     requestAnimationFrame(render);
     airplane.position.z -= settings.airplaneSpeed;
+    turret.position.z -= settings.airplaneSpeed;
     renderer.render(scene, camera);
   }
 
@@ -128,8 +131,8 @@ obj.then(airplane => {
 
   function updateCamera() {
     camera.position.x = airplane.position.x;
-    camera.position.y = (airplane.position.y + (15 * settings.distanceX));
-    camera.position.z = (airplane.position.z + (40 * settings.distanceY));
+    camera.position.y = (airplane.position.y + (5 * settings.distanceX));
+    camera.position.z = (airplane.position.z + (30 * settings.distanceY));
     camera.lookAt(airplane.position);
   }
 

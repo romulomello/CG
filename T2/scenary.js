@@ -6,10 +6,10 @@ export function createGroundPlane(width, height, widthSegments = 10, heightSegme
     let planeGeometry = new THREE.PlaneGeometry(width, height, widthSegments, heightSegments);
     let planeMaterial = new THREE.MeshLambertMaterial({ color: gcolor, side: THREE.DoubleSide, wireframe: true, transparent: true });
   
-    let mat4 = new THREE.Matrix4(); // Aux mat4 matrix   
     let plane = new THREE.Mesh(planeGeometry, planeMaterial);
     plane.receiveShadow = true; 
   
+    plane.name = "plane";
     return plane;
   }
 
@@ -47,6 +47,8 @@ export function createTree(x, z) {
     trunk.position.y = 1
     trunk.position.z = z
     group.add(trunk)
+
+    group.name = "tree";
     return group;
   }
 
@@ -69,3 +71,16 @@ export function createTree(x, z) {
       obj.material.opacity = opacity ;
     };
   };
+
+export function addWalls(plane, width, length, height, gcolor) {
+  let material = new THREE.MeshLambertMaterial({ color: gcolor, side: THREE.DoubleSide, wireframe: true, transparent: true });
+  let cubeGeometry = new THREE.BoxGeometry(width, length, height);
+  let cubeLeft = new THREE.Mesh(cubeGeometry, material);
+  cubeLeft.position.set(-width, 0, height/2);
+  cubeLeft.name = "left wall";
+  let cubeRight = new THREE.Mesh(cubeGeometry, material);
+  cubeRight.position.set(width, 0, height/2);
+  cubeRight.name = "right wall";
+  plane.add(cubeLeft);
+  plane.add(cubeRight);
+}
