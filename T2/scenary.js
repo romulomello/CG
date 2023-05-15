@@ -53,7 +53,7 @@ export function createTree(x, z) {
   }
 
  export function addTrees(plane, width, length) { 
-    let n = Math.round(Math.random() * 2);
+    let n = Math.round(Math.random());
     for (let j = 0; j < n; j++) {
       let x = -width/2 + 1.5 + Math.random() * (width - 3.0);
       let z = -length/2 + Math.random() * length;

@@ -40,8 +40,8 @@ scene.add( axesHelper );
 
 // create the ground plane
 let planes = [];
-let width = 100, length = 15, height = 50;
-for (let i = 0; i < 80; i++) {
+let width = 100, length = 10, height = 50;
+for (let i = 0; i < 100; i++) {
   let newPlane = createGroundPlane(width, length, 10, 10, "#356927");
   addTrees(newPlane, width, length);
   addWalls(newPlane, width, length, height, "#356927");
