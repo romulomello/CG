@@ -40,8 +40,8 @@ scene.add( axesHelper );
 
 // create the ground plane
 let planes = [];
-let width = 100, length = 10, height = 50;
-for (let i = 0; i < 100; i++) {
+let width = 100, length = 11, height = 50;
+for (let i = 0; i < 80; i++) {
   let newPlane = createGroundPlane(width, length, 10, 10, "#356927");
   addTrees(newPlane, width, length);
   addWalls(newPlane, width, length, height, "#356927");
@@ -124,8 +124,14 @@ obj.then(airplane => {
   }
 
   function updateOpacity(object, distance) {
-    // let opacity = (distance > maxDistance) ? 0 : (1 - distance / maxDistance) * initialOpacity;
-    let opacity = (distance > maxDistance) ? 0 : -(distance/maxDistance)*(distance/maxDistance)+1;
+    let opacity;
+    let maxVision = 0.8;
+    if (distance < maxDistance * maxVision) {
+      opacity = 1;
+    } else if (distance < maxDistance) {
+      var percentage = (distance - maxDistance * maxVision) / (maxDistance * (1 - maxVision));
+      opacity = 1 - percentage;
+    }
     setOpacity(object, opacity);
   }
 
