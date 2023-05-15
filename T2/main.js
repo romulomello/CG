@@ -132,7 +132,7 @@ obj.then(airplane => {
   function updateCamera() {
     camera.position.x = airplane.position.x;
     camera.position.y = (airplane.position.y + (5 * settings.distanceX));
-    camera.position.z = (airplane.position.z + (30 * settings.distanceY));
+    camera.position.z = (airplane.position.z + (20 * settings.distanceY));
     camera.lookAt(airplane.position);
   }
 
