@@ -124,7 +124,8 @@ obj.then(airplane => {
   }
 
   function updateOpacity(object, distance) {
-    let opacity = (distance > maxDistance) ? 0 : (1 - distance / maxDistance) * initialOpacity;
+    // let opacity = (distance > maxDistance) ? 0 : (1 - distance / maxDistance) * initialOpacity;
+    let opacity = (distance > maxDistance) ? 0 : -(distance/maxDistance)*(distance/maxDistance)+1;
     setOpacity(object, opacity);
   }
 
