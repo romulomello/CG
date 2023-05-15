@@ -4,7 +4,7 @@ import { degreesToRadians } from "../libs/util/util.js";
 export function createGroundPlane(width, height, widthSegments = 10, heightSegments = 10, gcolor = null) {
     if (!gcolor) gcolor = "rgb(200,200,200)";
     let planeGeometry = new THREE.PlaneGeometry(width, height, widthSegments, heightSegments);
-    let planeMaterial = new THREE.MeshLambertMaterial({ color: gcolor, side: THREE.DoubleSide, wireframe: true, transparent: true });
+    let planeMaterial = new THREE.MeshLambertMaterial({ color: gcolor, side: THREE.DoubleSide, transparent: true });
   
     let plane = new THREE.Mesh(planeGeometry, planeMaterial);
     plane.receiveShadow = true; 
@@ -53,9 +53,9 @@ export function createTree(x, z) {
   }
 
  export function addTrees(plane, width, length) { 
-    let n = 3 + Math.floor(Math.random() * 3);
+    let n = Math.round(Math.random() * 2);
     for (let j = 0; j < n; j++) {
-      let x = -width/2 + Math.random() * width;
+      let x = -width/2 + 1.5 + Math.random() * (width - 3.0);
       let z = -length/2 + Math.random() * length;
       let newTree = createTree(x, z);
       newTree.rotateX(degreesToRadians(90));
@@ -73,7 +73,7 @@ export function createTree(x, z) {
   };
 
 export function addWalls(plane, width, length, height, gcolor) {
-  let material = new THREE.MeshLambertMaterial({ color: gcolor, side: THREE.DoubleSide, wireframe: true, transparent: true });
+  let material = new THREE.MeshLambertMaterial({ color: gcolor, side: THREE.DoubleSide, transparent: true });
   let cubeGeometry = new THREE.BoxGeometry(width, length, height);
   let cubeLeft = new THREE.Mesh(cubeGeometry, material);
   cubeLeft.position.set(-width, 0, height/2);

@@ -40,8 +40,8 @@ scene.add( axesHelper );
 
 // create the ground plane
 let planes = [];
-let width = 100, length = 50, height = 50;
-for (let i = 0; i < 25; i++) {
+let width = 100, length = 15, height = 50;
+for (let i = 0; i < 80; i++) {
   let newPlane = createGroundPlane(width, length, 10, 10, "#356927");
   addTrees(newPlane, width, length);
   addWalls(newPlane, width, length, height, "#356927");
@@ -61,6 +61,8 @@ window.addEventListener('resize', function () { onWindowResize(camera, renderer)
 let obj = loadOBJFile("Arwing/", "Arwing");
 obj.then(airplane => {
   airplane.name = "airplane";
+  airplane.position.set(0.0, 20, 0.0);
+  scene.add(airplane);
 
   let turretObj = loadDAEFile("Turret/", "Turret");
   turretObj.then(turretScene => {
@@ -70,9 +72,6 @@ obj.then(airplane => {
     turret.scale.set(0.1, 0.1, 0.1);
     turret.position.set(0.0, 0.0, -300.0);
     scene.add(turret);
-
-  airplane.position.set(0.0, 20, 0.0);
-  scene.add(airplane);
 
   //Menu de configurações
   const settings = {
@@ -125,7 +124,7 @@ obj.then(airplane => {
   }
 
   function updateOpacity(object, distance) {
-    let opacity = (distance > maxDistance) ? 1 : (1 - distance / maxDistance) * initialOpacity;
+    let opacity = (distance > maxDistance) ? 0 : (1 - distance / maxDistance) * initialOpacity;
     setOpacity(object, opacity);
   }
 
