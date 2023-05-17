@@ -46,19 +46,25 @@ export function createTree(x, z) {
     trunk.position.x = x
     trunk.position.y = 1
     trunk.position.z = z
-    group.add(trunk)
+    group.add(trunk);
 
     group.name = "tree";
     return group;
   }
 
- export function addTrees(plane, width, length) { 
-    let n = Math.round(Math.random());
+ export function addTrees(plane, width, length, showHelper = false) { 
+    let n = Math.round(Math.random()/1.3);
     for (let j = 0; j < n; j++) {
-      let x = -width/2 + 1.5 + Math.random() * (width - 3.0);
+      let x = -width/2 + 3.0 + Math.random() * (width - 6.0);
       let z = -length/2 + Math.random() * length;
       let newTree = createTree(x, z);
       newTree.rotateX(degreesToRadians(90));
+      var box = new THREE.Box3().setFromObject( newTree );
+
+      if(showHelper) {
+        let helper = new THREE.Box3Helper( box, 0xffff00 );
+        plane.add( helper );
+      }
       plane.add(newTree);
     }
   }
