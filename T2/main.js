@@ -3,6 +3,7 @@ import GUI from '../libs/util/dat.gui.module.js'
 import { OrbitControls } from '../build/jsm/controls/OrbitControls.js';
 import {initRenderer, 
         initCamera,
+        SecondaryBox,
         initDefaultBasicLight,
         setDefaultMaterial,
         onWindowResize,
@@ -17,8 +18,8 @@ import {
 } from "./scenary.js";
 
 import {
-  mouseRotation,
-  onDocumentMouseMove
+  controlAirplane,
+  onMouseMove
 } from "./mouse.js";
 
 import { loadOBJFile, loadDAEFile } from './objImports.js';
@@ -32,10 +33,18 @@ let light_dir = new THREE.DirectionalLight( 0xffffff, 1 ); // Cria uma luz direc
 scene.add(light_dir);
 light = initDefaultBasicLight(scene) //Cria uma luz padrão
 
-orbit = new OrbitControls( camera, renderer.domElement ); // Habilita o mouse
-document.addEventListener('mousemove', onDocumentMouseMove);
+var mouse = new THREE.Vector2();
 
-window.addEventListener( 'resize', function(){onWindowResize(camera, renderer)}, false );
+var raycaster = new THREE.Raycaster();
+
+var planeDistance = -100;
+
+
+orbit = new OrbitControls( camera, renderer.domElement ); // Habilita o mouse
+window.addEventListener('resize', function () { onWindowResize(camera, renderer) }, false);
+window.addEventListener('mousemove', onMouseMove, false);
+
+
 let axesHelper = new THREE.AxesHelper( 12 );
 scene.add( axesHelper );
 
@@ -61,6 +70,38 @@ for (let i = 0; i < 80; i++) {
   scene.add(newPlane);
 }
 
+let objects_rc = [];
+let planerc, planeGeometry, planeMaterial;
+planeGeometry = new THREE.PlaneGeometry(width+20, height);
+planeMaterial = new THREE.MeshLambertMaterial();
+planeMaterial.side = THREE.DoubleSide;
+planeMaterial.transparent = true;
+planeMaterial.opacity = 0;
+planerc = new THREE.Mesh(planeGeometry, planeMaterial);
+planerc.position.set(0,25,-10);
+planerc.layers.set(0);
+scene.add(planerc);
+objects_rc.push(planerc);
+raycaster.layers.enable( 0 );
+
+let planerc_frente;
+planeGeometry = new THREE.PlaneGeometry(width, height);
+planeMaterial = new THREE.MeshLambertMaterial();
+planeMaterial.side = THREE.DoubleSide;
+planeMaterial.transparent = true;
+planeMaterial.opacity = 0.1;
+planerc_frente = new THREE.Mesh(planeGeometry, planeMaterial);
+planerc_frente.position.set(0,25,-500);
+planerc_frente.layers.set(0);
+scene.add(planerc_frente);
+
+var targetGeometry = new THREE.CircleGeometry(5, 32);
+var targetMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+var target = new THREE.Mesh(targetGeometry, targetMaterial);
+// Posicionar a target no plano de fundo
+target.position.z = -500; // Distância do avião ao plano de fundo
+scene.add(target);
+
 //Variavel do indice do plano inicial
 let currentPlaneIndex = 0;
 //Variavel de distância maxima
@@ -79,7 +120,7 @@ subtitulo.style.marginRight = '15px';
 // Adiciona o subtítulo como um controlador personalizado
 controller.__ul.insertBefore(subtitulo, controller.__ul.firstChild);
 // controller.add(settings,'airplaneSpeed',1,3);
-let airplaneSpeed = 1;
+let airplaneSpeed = 0;
 // controller.add(settings,'showHelper',false,true);
 controller.add(settings,'distanceX',1,1.5);
 controller.add(settings,'distanceY',1,1.5);
@@ -92,6 +133,12 @@ setupKeyControls();
 let airplane = {obj: null, box: new THREE.Box3()};
 let turret1 = {obj: null, box: new THREE.Box3()};
 let turret2 = {obj: null, box: new THREE.Box3()};
+
+//Cria a esfera
+let intersectionSphere = new THREE.Mesh(
+  new THREE.SphereGeometry(.2, 30, 30, 0, Math.PI * 2, 0, Math.PI),
+  new THREE.MeshPhongMaterial({color:"orange", shininess:"200"}));
+scene.add
 
 let promise = loadOBJFile("Arwing/", "Arwing");
 promise.then(obj => {
@@ -143,9 +190,13 @@ promise.then(obj => {
 
 });
 
+// Obtenha o elemento do canvas
+var gameCanvas = document.getElementById('webgl-output');
+// Ocultar o cursor do mouse
+gameCanvas.style.cursor = 'none';
+
 function render() {
-  //Função de rotação do mouse
-  mouseRotation(airplane.obj,settings);
+  controlAirplane(airplane,target,raycaster,camera,objects_rc)
   //Função para atualização da camera
   updateCamera();
   //Atualiza posição do plano atual
@@ -155,10 +206,13 @@ function render() {
     let distance = camera.position.distanceTo(planes[i].position);
     updateOpacity(planes[i], distance);
   } 
-
+  //showInterceptionCoords(mouse);
   updateZPosition(airplane.obj, airplane.obj.position.z-airplaneSpeed, airplane.box);
   updateZPosition(turret1.obj, turret1.obj.position.z-airplaneSpeed, turret1.box);
   updateZPosition(turret2.obj, turret2.obj.position.z-airplaneSpeed, turret2.box);
+  updateZPosition(planerc, airplane.obj.position.z);
+  updateZPosition(target, airplane.obj.position.z-200);
+  updateZPosition(planerc_frente, airplane.obj.position.z-500);
 
   requestAnimationFrame(render);
   renderer.render(scene, camera);
@@ -185,8 +239,8 @@ function updateOpacity(object, distance) {
 
 function updateCamera() {
   camera.position.x = airplane.obj.position.x;
-  camera.position.y = (airplane.obj.position.y + (5 * settings.distanceX));
-  camera.position.z = (airplane.obj.position.z + (20 * settings.distanceY));
+  camera.position.y = (airplane.obj.position.y + (3 * settings.distanceX));
+  camera.position.z = (airplane.obj.position.z + (13 * settings.distanceY));
   camera.lookAt(airplane.obj.position);
 }
 
@@ -201,6 +255,9 @@ function setupKeyControls() {
   document.onkeydown = function(e) {
     console.log(e);
     switch (e.key) {
+      case "0":
+      airplaneSpeed = 0;
+      break;
       case "1":
       airplaneSpeed = 1;
       break;
@@ -210,6 +267,15 @@ function setupKeyControls() {
       case "3":
       airplaneSpeed = 3;
       break;
+      case "Escape":
+      if(gameCanvas.style.cursor=='none'){
+        gameCanvas.style.cursor = '';
+      } else {
+        gameCanvas.style.cursor = 'none';
+      break;
     }
+  }
   };
 }
+
+

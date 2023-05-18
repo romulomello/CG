@@ -79,6 +79,7 @@ export function createTree(x, z) {
   };
 
 export function addWalls(plane, width, length, height, gcolor) {
+  let lineMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
   let material = new THREE.MeshLambertMaterial({ color: gcolor, side: THREE.DoubleSide, transparent: true });
   let cubeGeometry = new THREE.BoxGeometry(width, length, height);
   let cubeLeft = new THREE.Mesh(cubeGeometry, material);
@@ -87,6 +88,10 @@ export function addWalls(plane, width, length, height, gcolor) {
   let cubeRight = new THREE.Mesh(cubeGeometry, material);
   cubeRight.position.set(width, 0, height/2);
   cubeRight.name = "right wall";
+  let edgesLeft = new THREE.LineSegments(new THREE.EdgesGeometry(cubeGeometry), lineMaterial);
+  let edgesRight = new THREE.LineSegments(new THREE.EdgesGeometry(cubeGeometry), lineMaterial);
+  cubeLeft.add(edgesLeft);
+  cubeRight.add(edgesRight);
   plane.add(cubeLeft);
   plane.add(cubeRight);
 }
