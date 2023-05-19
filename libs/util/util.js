@@ -249,7 +249,7 @@ export function initRenderer(color = "rgb(0, 0, 0)") {
    var renderer = new THREE.WebGLRenderer();
    renderer.shadowMap.enabled = true;
    renderer.shadowMapSoft = true;
-   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+   renderer.shadowMap.type = THREE.PCFShadowMap;
 
    renderer.setClearColor(new THREE.Color(color));
    renderer.setSize(window.innerWidth, window.innerHeight);

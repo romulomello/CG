@@ -22,6 +22,7 @@ export function createTree(x, z) {
     level1.position.x = x
     level1.position.y = 5
     level1.position.z = z
+    level1.castShadow = true;
     group.add(level1)
     const level2 = new THREE.Mesh(
         new THREE.ConeGeometry(2,2,8),
@@ -30,6 +31,7 @@ export function createTree(x, z) {
     level2.position.x = x
     level2.position.y = 4
     level2.position.z = z
+    //level2.castShadow = true;
     group.add(level2)
     const level3 = new THREE.Mesh(
         new THREE.ConeGeometry(3,2,8),
@@ -38,6 +40,7 @@ export function createTree(x, z) {
     level3.position.x = x
     level3.position.y = 3
     level3.position.z = z
+    level3.castShadow = true;
     group.add(level3)
     const trunk = new THREE.Mesh(
         new THREE.CylinderGeometry(0.5,0.5,2),
@@ -46,6 +49,7 @@ export function createTree(x, z) {
     trunk.position.x = x
     trunk.position.y = 1
     trunk.position.z = z
+    trunk.castShadow = true;
     group.add(trunk);
 
     group.name = "tree";
@@ -65,6 +69,7 @@ export function createTree(x, z) {
         let helper = new THREE.Box3Helper( box, 0xffff00 );
         plane.add( helper );
       }
+      //newTree.castShadow = true;
       plane.add(newTree);
     }
   }
@@ -92,6 +97,8 @@ export function addWalls(plane, width, length, height, gcolor) {
   let edgesRight = new THREE.LineSegments(new THREE.EdgesGeometry(cubeGeometry), lineMaterial);
   cubeLeft.add(edgesLeft);
   cubeRight.add(edgesRight);
+  cubeLeft.receiveShadow = true;
+  cubeRight.receiveShadow = true;
   plane.add(cubeLeft);
   plane.add(cubeRight);
 }

@@ -4,11 +4,7 @@ import * as THREE from 'three';
 
 // Mouse variables
 let pointer = new THREE.Vector2();
-var mouseDelay = 0.05;
-let mouseX = 0;
-let mouseY = 0;
-let targetX = 0;
-let targetY = 0;
+var mouseDelay = 0.1;
 const windowHalfX = window.innerWidth / 2;
 const windowHalfY = window.innerHeight / 2;
 
@@ -18,8 +14,7 @@ export function controlAirplane(airplane,target,raycaster,camera,objects_rc) {
    // calculate objects intersecting the picking ray
    let intersects = raycaster.intersectObjects(objects_rc);
    
-   // -- Find the selected objects_rc ------------------------------
-   if (intersects.length > 0) // Check if there is a intersection
+   if (intersects.length > 0)
    {      
       let point = intersects[0].point;
       var targetX = airplane.obj.position.x + (point.x - airplane.obj.position.x) * mouseDelay;
@@ -29,24 +24,20 @@ export function controlAirplane(airplane,target,raycaster,camera,objects_rc) {
       targetY = Math.max(14, Math.min(40, targetY));
    
       var positionChanged = (targetX !== airplane.obj.position.x) || (targetY !== airplane.obj.position.y);
-   
-      // Mover o avião para a nova posição
+
       airplane.obj.position.x = targetX;
       airplane.obj.position.y = targetY;
    
       target.position.x = point.x;
       target.position.y = point.y;
-      //airplane.obj.position.z -= planeSpeed; // Movimentação do avião para frente no eixo Z
-   
-      // Rotacionar o avião com base na nova posição
+
       if (positionChanged){
-      var angle = Math.atan2(Math.abs(point.y - airplane.obj.position.y), point.x - airplane.obj.position.x);
-      //console.log("Angle: " + angle)
-      var smoothness = 0.4;
-      airplane.obj.rotation.z = (angle - Math.PI / 2)*smoothness;
+         var angle = Math.atan2(Math.abs(point.y - airplane.obj.position.y), point.x - airplane.obj.position.x);
+         var smoothness = 0.4;
+         airplane.obj.rotation.z = (angle - Math.PI / 2)*smoothness;
       }
       else {
-      airplane.obj.rotation.z = 0
+         airplane.obj.rotation.z = 0
       }
    }
 }

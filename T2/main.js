@@ -4,11 +4,12 @@ import { OrbitControls } from '../build/jsm/controls/OrbitControls.js';
 import {initRenderer, 
         initCamera,
         SecondaryBox,
-        initDefaultBasicLight,
         setDefaultMaterial,
         onWindowResize,
         degreesToRadians
 } from "../libs/util/util.js";
+
+import {initDefaultBasicLight,} from "./light.js";
 
 import {
   createGroundPlane,
@@ -27,11 +28,41 @@ import { loadOBJFile, loadDAEFile } from './objImports.js';
 let scene, renderer, camera, material, light, orbit; // Inicia as Varaiveis
 scene = new THREE.Scene();    // Cria o cenario
 renderer = initRenderer();    // Inicia o render
+renderer.shadowMap.type = THREE.PCFShadowMap;
 camera = initCamera(new THREE.Vector3(0, 20, 20)); // Inicia a camera
 material = setDefaultMaterial(); 
-let light_dir = new THREE.DirectionalLight( 0xffffff, 1 ); // Cria uma luz direcional na cor branca
+light = initDefaultBasicLight(scene);
+let light_dir = new THREE.DirectionalLight( 0xffffff, 1.5 ); // Cria uma luz direcional na cor branca
+light_dir.position.set(20, 30, 0);
+light_dir.castShadow = true;
+
+const settingsSh = {
+  width: 1024,
+  height: 1024,
+  near: 1,
+  far: 1,
+  left: 0,
+  right: 0,
+  top: 0,
+  bottom: 0,
+  bias: 0.001,
+};
+// Configurar a resolução das sombras
+light_dir.shadow.mapSize.width = 512;
+light_dir.shadow.mapSize.height = 512;
+
+// Definir a área de projeção das sombras
+light_dir.shadow.camera.near = 1;
+light_dir.shadow.camera.far = 80;
+
+light_dir.shadow.camera.left = 10;
+light_dir.shadow.camera.right = 500;
+light_dir.shadow.camera.top = 30;
+light_dir.shadow.camera.bottom = -70;
+light_dir.shadow.bias = -0.0001;
+
 scene.add(light_dir);
-light = initDefaultBasicLight(scene) //Cria uma luz padrão
+//light = initDefaultBasicLight(scene) //Cria uma luz padrão
 
 var mouse = new THREE.Vector2();
 
@@ -50,7 +81,7 @@ scene.add( axesHelper );
 
 //Menu de configurações
 const settings = {
-  showHelper: true,
+  showHelper: false,
   distanceX: 1,
   distanceY: 1,
   sensX: 1,
@@ -59,13 +90,14 @@ const settings = {
 
 // create the ground plane
 let planes = [];
-let width = 100, length = 11, height = 50;
-for (let i = 0; i < 80; i++) {
+let width = 100, length = 25, height = 50;
+for (let i = 0; i < 40; i++) {
   let newPlane = createGroundPlane(width, length, 10, 10, "#356927");
   addTrees(newPlane, width, length, settings.showHelper);
   addWalls(newPlane, width, length, height, "#356927");
   newPlane.translateZ(i * (-length));
   newPlane.rotateX(degreesToRadians(-90));
+  newPlane.receiveShadow = true;
   planes.push(newPlane);
   scene.add(newPlane);
 }
@@ -84,16 +116,12 @@ scene.add(planerc);
 objects_rc.push(planerc);
 raycaster.layers.enable( 0 );
 
-let planerc_frente;
-planeGeometry = new THREE.PlaneGeometry(width, height);
-planeMaterial = new THREE.MeshLambertMaterial();
-planeMaterial.side = THREE.DoubleSide;
-planeMaterial.transparent = true;
-planeMaterial.opacity = 0.1;
-planerc_frente = new THREE.Mesh(planeGeometry, planeMaterial);
-planerc_frente.position.set(0,25,-500);
-planerc_frente.layers.set(0);
-scene.add(planerc_frente);
+
+
+var targetLight = new THREE.Object3D();
+targetLight.position.set(0, 25, 0);
+light_dir.target = targetLight;
+scene.add(targetLight);
 
 var targetGeometry = new THREE.CircleGeometry(5, 32);
 var targetMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
@@ -194,6 +222,12 @@ promise.then(obj => {
 var gameCanvas = document.getElementById('webgl-output');
 // Ocultar o cursor do mouse
 gameCanvas.style.cursor = 'none';
+light_dir.target.position.set(0,12,0);
+let frameCount = 0;
+let fpsContainer;
+let startTime;
+
+startFPSCounter();
 
 function render() {
   controlAirplane(airplane,target,raycaster,camera,objects_rc)
@@ -208,11 +242,13 @@ function render() {
   } 
   //showInterceptionCoords(mouse);
   updateZPosition(airplane.obj, airplane.obj.position.z-airplaneSpeed, airplane.box);
-  updateZPosition(turret1.obj, turret1.obj.position.z-airplaneSpeed, turret1.box);
-  updateZPosition(turret2.obj, turret2.obj.position.z-airplaneSpeed, turret2.box);
+  //updateZPosition(turret1.obj, turret1.obj.position.z-airplaneSpeed, turret1.box);
+  //updateZPosition(turret2.obj, turret2.obj.position.z-airplaneSpeed, turret2.box);
   updateZPosition(planerc, airplane.obj.position.z);
   updateZPosition(target, airplane.obj.position.z-200);
-  updateZPosition(planerc_frente, airplane.obj.position.z-500);
+  updateZPosition(light_dir, airplane.obj.position.z)
+  targetLight.position.z = airplane.obj.position.z;
+  light_dir.target = targetLight;
 
   requestAnimationFrame(render);
   renderer.render(scene, camera);
@@ -278,4 +314,20 @@ function setupKeyControls() {
   };
 }
 
+function startFPSCounter() {
+  fpsContainer = document.getElementById('fps-counter');
+  startTime = performance.now();
+  requestAnimationFrame(updateFPSCounter);
+}
 
+
+function updateFPSCounter() {
+  frameCount++;
+  const currentTime = performance.now();
+  const elapsedSeconds = (currentTime - startTime) / 1000;
+  const fps = Math.round(frameCount / elapsedSeconds);
+
+  fpsContainer.innerHTML = `FPS: ${fps}`;
+
+  requestAnimationFrame(updateFPSCounter);
+}
