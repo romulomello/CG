@@ -131,7 +131,7 @@ target.position.z = -500; // Distância do avião ao plano de fundo
 scene.add(target);
 
 //Variavel do indice do plano inicial
-let currentPlaneIndex = 0;
+let currentPlaneIndex = 0, currentTurretIndex = 0;
 //Variavel de distância maxima
 let maxDistance = planes.length * length; 
 
@@ -159,8 +159,12 @@ setupKeyControls();
 
 //Cria o Avião
 let airplane = {obj: null, box: new THREE.Box3()};
-let turret1 = {obj: null, box: new THREE.Box3()};
-let turret2 = {obj: null, box: new THREE.Box3()};
+let turrets = [
+  {obj: null, box: new THREE.Box3()},
+  {obj: null, box: new THREE.Box3()},
+  {obj: null, box: new THREE.Box3()}
+]
+let turretDistance = 500;
 
 //Cria a esfera
 let intersectionSphere = new THREE.Mesh(
@@ -168,6 +172,7 @@ let intersectionSphere = new THREE.Mesh(
   new THREE.MeshPhongMaterial({color:"orange", shininess:"200"}));
 scene.add
 
+let shots = new Set();
 let promise = loadOBJFile("Arwing/", "Arwing");
 promise.then(obj => {
   airplane.obj = obj;
@@ -183,35 +188,53 @@ promise.then(obj => {
   //Aponta a camera para o Avião
   camera.lookAt(airplane.obj.position);
 
-  let turretPromise1 = loadDAEFile("Turret/", "Turret");
+  let turretPromise1 = loadDAEFile("Turret/", "turret");
   turretPromise1.then(obj1 => {
-    turret1.obj = obj1.scene;
-    turret1.obj.name = "turret1";
-    turret1.obj.scale.set(0.1, 0.1, 0.1);
-    turret1.obj.position.set(20.0, 0.0, -300.0);
-    turret1.obj.rotation.set(0.0, -0.1, 0.0);
-    turret1.box = turret1.box.setFromObject( turret1.obj );
+    turrets[0].obj = obj1.scene;
+    turrets[0].obj.name = "turret1";
+    turrets[0].obj.scale.set(0.1, 0.1, 0.1);
+    turrets[0].obj.position.set(20.0, 0.0, -turretDistance);
+    turrets[0].obj.rotation.set(0.0, -0.1, 0.0);
+    turrets[0].box = turrets[0].box.setFromObject( turrets[0].obj );
     if(settings.showHelper) {
-      let helper = new THREE.Box3Helper( turret1.box, 0xffff00 );
+      let helper = new THREE.Box3Helper( turrets[0].box, 0xffff00 );
       scene.add( helper );
     }
-    scene.add(turret1.obj);
+    scene.add(turrets[0].obj);
 
-    let turretPromise2 = loadDAEFile("Turret/", "Turret");
+    let turretPromise2 = loadDAEFile("Turret/", "turret");
     turretPromise2.then(obj2 => {
-      turret2.obj = obj2.scene;
-      turret2.obj.name = "turret2";
-      turret2.obj.scale.set(0.1, 0.1, 0.1);
-      turret2.obj.position.set(-20.0, 0.0, -300.0);
-      turret2.obj.rotation.set(0.0, 0.1, 0.0);
-      turret2.box = turret2.box.setFromObject( turret2.obj );
+      turrets[1].obj = obj2.scene;
+      turrets[1].obj.name = "turret2";
+      turrets[1].obj.scale.set(0.1, 0.1, 0.1);
+      turrets[1].obj.position.set(-20.0, 0.0, -2 * turretDistance);
+      turrets[1].obj.rotation.set(0.0, 0.1, 0.0);
+      turrets[1].box = turrets[1].box.setFromObject( turrets[1].obj );
       if(settings.showHelper) {
-        let helper = new THREE.Box3Helper( turret2.box, 0xffff00 );
+        let helper = new THREE.Box3Helper( turrets[1].box, 0xffff00 );
         scene.add( helper );
       }
-      scene.add(turret2.obj);
+      scene.add(turrets[1].obj);
 
-      render();
+      let turretPromise3 = loadDAEFile("Turret/", "turret");
+      turretPromise3.then(obj3 => {
+        turrets[2].obj = obj3.scene;
+        turrets[2].obj.name = "turret3";
+        turrets[2].obj.scale.set(0.1, 0.1, 0.1);
+        turrets[2].obj.position.set(20.0, 0.0, -3 * turretDistance);
+        turrets[2].obj.rotation.set(0.0, -0.1, 0.0);
+        turrets[2].box = turrets[2].box.setFromObject( turrets[2].obj );
+        if(settings.showHelper) {
+          let helper = new THREE.Box3Helper( turrets[2].box, 0xffff00 );
+          scene.add( helper );
+        }
+        scene.add(turrets[2].obj);
+
+        fireShot();
+
+        render();
+      });
+
     });
 
   });
@@ -230,11 +253,13 @@ let startTime;
 startFPSCounter();
 
 function render() {
+  console.log(turrets[0].obj.position, turrets[1].obj.position, turrets[2].obj.position);
   controlAirplane(airplane,target,raycaster,camera,objects_rc)
   //Função para atualização da camera
   updateCamera();
   //Atualiza posição do plano atual
   updatePlanePosition();
+  updateTurretPosition();
 
   for (let i = 0; i < planes.length; i++) {
     let distance = camera.position.distanceTo(planes[i].position);
@@ -242,13 +267,12 @@ function render() {
   } 
   //showInterceptionCoords(mouse);
   updateZPosition(airplane.obj, airplane.obj.position.z-airplaneSpeed, airplane.box);
-  //updateZPosition(turret1.obj, turret1.obj.position.z-airplaneSpeed, turret1.box);
-  //updateZPosition(turret2.obj, turret2.obj.position.z-airplaneSpeed, turret2.box);
   updateZPosition(planerc, airplane.obj.position.z);
   updateZPosition(target, airplane.obj.position.z-200);
   updateZPosition(light_dir, airplane.obj.position.z)
   targetLight.position.z = airplane.obj.position.z;
   light_dir.target = targetLight;
+  controlBullets(10);
 
   requestAnimationFrame(render);
   renderer.render(scene, camera);
@@ -284,6 +308,17 @@ function updatePlanePosition() {
   if(airplane.obj.position.z < planes[currentPlaneIndex].position.z - length){
     planes[currentPlaneIndex].position.z -= length * planes.length;
     currentPlaneIndex = (currentPlaneIndex + 1) % planes.length;
+  }
+}
+
+function updateTurretPosition() {
+  if(airplane.obj.position.z < turrets[currentTurretIndex].obj.position.z){
+    turrets[currentTurretIndex].obj.position.z -= 3 * turretDistance;
+    let posX = turrets[currentTurretIndex].obj.position.x;
+    turrets[currentTurretIndex].obj.position.x = -posX;
+    turrets[currentTurretIndex].obj.rotation.set(0.0, posX/(Math.abs(posX)) * 0.2, 0.0);
+    turrets[currentTurretIndex].obj.visible = true;
+    currentTurretIndex = (currentTurretIndex + 1) % turrets.length;
   }
 }
 
@@ -330,4 +365,49 @@ function updateFPSCounter() {
   fpsContainer.innerHTML = `FPS: ${fps}`;
 
   requestAnimationFrame(updateFPSCounter);
+}
+
+function fireShot() {
+  let bulletGeometry = new THREE.CylinderGeometry(0.05, 0.05, 1, 4);
+  let bulletMaterial = new THREE.MeshBasicMaterial("0xffffff");
+  let bullet1 = new THREE.Mesh(bulletGeometry, bulletMaterial);
+  let bullet2 = new THREE.Mesh(bulletGeometry, bulletMaterial);
+  let airplanePos = airplane.obj.getWorldPosition(new THREE.Vector3());
+  bullet1.position.x = airplanePos.x-1;
+  bullet1.position.y = airplanePos.y-1.5;
+  bullet1.position.z = airplanePos.z-0.5;
+
+  bullet2.position.x = airplanePos.x+1;
+  bullet2.position.y = airplanePos.y-1.5;
+  bullet2.position.z = airplanePos.z-0.5;
+
+  let targetPosition = target.getWorldPosition(new THREE.Vector3());
+  let dir1 = new THREE.Vector3();
+  dir1.subVectors( targetPosition, bullet1.position ).normalize();
+  bullet1.lookAt(dir1);
+
+  let dir2 = new THREE.Vector3();
+  dir2.subVectors( targetPosition, bullet2.position ).normalize();
+  bullet2.lookAt(dir2);
+
+  shots.add({obj: bullet1, dir: dir1});
+  shots.add({obj: bullet2, dir: dir2});
+
+  scene.add(bullet1);
+  scene.add(bullet2);
+}
+
+// Move the object towards the target at a constant speed
+function controlBullets(speed) {
+  var dist;
+  shots.forEach(element => {
+    if(element.obj.position.z > -length * planes.length){
+      dist = element.dir.clone().multiplyScalar(speed);
+      element.obj.position.add(dist);
+    }
+    else{
+      shots.delete(element);
+      scene.remove(element.obj);
+    }
+  })
 }
