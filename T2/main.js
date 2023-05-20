@@ -129,6 +129,7 @@ let promise = loadOBJFile("Arwing/", "Arwing");
 promise.then(obj => {
   //Seta posição do avião
   airplane.obj = obj;
+  airplane.obj.traverse( function( node ) { if ( node instanceof THREE.Mesh ) { node.castShadow = true; } } );
   airplane.obj.name = "airplane";
   airplane.obj.position.set(0.0, 20, 0.0);
   airplane.box = airplane.box.setFromObject( airplane.obj );
@@ -145,6 +146,7 @@ promise.then(obj => {
   turretPromise1.then(obj1 => {
     //Seta escala, rotação e posição da torreta
     turrets[0].obj = obj1.scene;
+    turrets[0].obj.traverse( function( node ) { if ( node instanceof THREE.Mesh ) { node.castShadow = true; } } );
     turrets[0].obj.name = "turret1";
     turrets[0].obj.scale.set(turretScale, turretScale, turretScale);
     turrets[0].obj.position.set(20.0, 0.0, -turretDistance);
@@ -159,6 +161,7 @@ promise.then(obj => {
     let turretPromise2 = loadDAEFile("./Turret/", "turret");
     turretPromise2.then(obj2 => {
       turrets[1].obj = obj2.scene;
+      turrets[1].obj.traverse( function( node ) { if ( node instanceof THREE.Mesh ) { node.castShadow = true; } } );
       turrets[1].obj.name = "turret2";
       turrets[1].obj.scale.set(turretScale, turretScale, turretScale);
       turrets[1].obj.position.set(-20.0, 0.0, -2 * turretDistance);
@@ -173,6 +176,7 @@ promise.then(obj => {
       let turretPromise3 = loadDAEFile("Turret/", "turret");
       turretPromise3.then(obj3 => {
         turrets[2].obj = obj3.scene;
+        turrets[2].obj.traverse( function( node ) { if ( node instanceof THREE.Mesh ) { node.castShadow = true; } } );
         turrets[2].obj.name = "turret3";
         turrets[2].obj.scale.set(turretScale, turretScale, turretScale);
         turrets[2].obj.position.set(20.0, 0.0, -3 * turretDistance);
@@ -248,14 +252,16 @@ function rotateCamera(){
   if(Math.abs(camera.rotation._z) < 1){
     // If airplane is in the corner left, rotate positive degrees in z
     if(airplane.obj.position.x < -30){
-      camera.rotation._z += 0.1;
+      // camera.rotation._z += 0.1;
+      camera.rotateZ(0.01);
     }
     else if(airplane.obj.position.x > 30){ // If airplane is in the corner right, rotate negative degrees in z
-      camera.rotation._z -= 0.1;
+      // camera.rotation._z -= 0.1;
+      camera.rotateZ(-0.01);
     }
     else {
       // Restore default rotation
-      camera.rotation._z += camera.rotation._z/Math.abs(camera.rotation._z) * 0.1;
+      camera.rotation._z += camera.rotation._z/Math.abs(camera.rotation._z) * 0.01;
       if(Math.abs(camera.rotation._z) < 0.1){
         camera.rotation._z = 0;
       }
