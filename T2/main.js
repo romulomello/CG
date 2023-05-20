@@ -2,14 +2,13 @@ import * as THREE from 'three';
 import GUI from '../libs/util/dat.gui.module.js'
 import { OrbitControls } from '../build/jsm/controls/OrbitControls.js';
 import {initRenderer, 
-        initCamera,
         SecondaryBox,
         setDefaultMaterial,
         onWindowResize,
         degreesToRadians
 } from "../libs/util/util.js";
 
-import {initDefaultBasicLight,} from "./light.js";
+import {initDefaultBasicLight, initDirLight,initCamera,} from "./light.js";
 
 import {
   createGroundPlane,
@@ -25,56 +24,21 @@ import {
 
 import { loadOBJFile, loadDAEFile } from './objImports.js';
 
-let scene, renderer, camera, material, light, orbit; // Inicia as Varaiveis
+let scene, renderer, camera, material, light, light_dir, orbit; // Inicia as Varaiveis
 scene = new THREE.Scene();    // Cria o cenario
 renderer = initRenderer();    // Inicia o render
 renderer.shadowMap.type = THREE.PCFShadowMap;
-camera = initCamera(new THREE.Vector3(0, 20, 20)); // Inicia a camera
+let slackCamera = 0;
+camera = initCamera(new THREE.Vector3(0+slackCamera, 20, 20)); // Inicia a camera
 material = setDefaultMaterial(); 
 light = initDefaultBasicLight(scene);
-let light_dir = new THREE.DirectionalLight( 0xffffff, 1.5 ); // Cria uma luz direcional na cor branca
-light_dir.position.set(20, 30, 0);
-light_dir.castShadow = true;
-
-const settingsSh = {
-  width: 1024,
-  height: 1024,
-  near: 1,
-  far: 1,
-  left: 0,
-  right: 0,
-  top: 0,
-  bottom: 0,
-  bias: 0.001,
-};
-// Configurar a resolução das sombras
-light_dir.shadow.mapSize.width = 512;
-light_dir.shadow.mapSize.height = 512;
-
-// Definir a área de projeção das sombras
-light_dir.shadow.camera.near = 1;
-light_dir.shadow.camera.far = 80;
-
-light_dir.shadow.camera.left = 10;
-light_dir.shadow.camera.right = 500;
-light_dir.shadow.camera.top = 30;
-light_dir.shadow.camera.bottom = -70;
-light_dir.shadow.bias = -0.0001;
-
-scene.add(light_dir);
-//light = initDefaultBasicLight(scene) //Cria uma luz padrão
-
-var mouse = new THREE.Vector2();
+light_dir = initDirLight(scene);
 
 var raycaster = new THREE.Raycaster();
-
-var planeDistance = -100;
-
 
 orbit = new OrbitControls( camera, renderer.domElement ); // Habilita o mouse
 window.addEventListener('resize', function () { onWindowResize(camera, renderer) }, false);
 window.addEventListener('mousemove', onMouseMove, false);
-
 
 let axesHelper = new THREE.AxesHelper( 12 );
 scene.add( axesHelper );
@@ -90,8 +54,8 @@ const settings = {
 
 // create the ground plane
 let planes = [];
-let width = 100, length = 25, height = 50;
-for (let i = 0; i < 40; i++) {
+let width = 100, length = 50, height = 50;
+for (let i = 0; i < 50; i++) {
   let newPlane = createGroundPlane(width, length, 10, 10, "#356927");
   addTrees(newPlane, width, length, settings.showHelper);
   addWalls(newPlane, width, length, height, "#356927");
@@ -115,8 +79,6 @@ planerc.layers.set(0);
 scene.add(planerc);
 objects_rc.push(planerc);
 raycaster.layers.enable( 0 );
-
-
 
 var targetLight = new THREE.Object3D();
 targetLight.position.set(0, 25, 0);
@@ -149,6 +111,8 @@ subtitulo.style.marginRight = '15px';
 controller.__ul.insertBefore(subtitulo, controller.__ul.firstChild);
 // controller.add(settings,'airplaneSpeed',1,3);
 let airplaneSpeed = 0;
+let oldSpeed = 0;
+let stopGame = false;
 // controller.add(settings,'showHelper',false,true);
 controller.add(settings,'distanceX',1,1.5);
 controller.add(settings,'distanceY',1,1.5);
@@ -161,12 +125,6 @@ setupKeyControls();
 let airplane = {obj: null, box: new THREE.Box3()};
 let turret1 = {obj: null, box: new THREE.Box3()};
 let turret2 = {obj: null, box: new THREE.Box3()};
-
-//Cria a esfera
-let intersectionSphere = new THREE.Mesh(
-  new THREE.SphereGeometry(.2, 30, 30, 0, Math.PI * 2, 0, Math.PI),
-  new THREE.MeshPhongMaterial({color:"orange", shininess:"200"}));
-scene.add
 
 let promise = loadOBJFile("Arwing/", "Arwing");
 promise.then(obj => {
@@ -183,7 +141,7 @@ promise.then(obj => {
   //Aponta a camera para o Avião
   camera.lookAt(airplane.obj.position);
 
-  let turretPromise1 = loadDAEFile("Turret/", "Turret");
+  let turretPromise1 = loadDAEFile("./Turret/", "turret");
   turretPromise1.then(obj1 => {
     turret1.obj = obj1.scene;
     turret1.obj.name = "turret1";
@@ -197,7 +155,7 @@ promise.then(obj => {
     }
     scene.add(turret1.obj);
 
-    let turretPromise2 = loadDAEFile("Turret/", "Turret");
+    let turretPromise2 = loadDAEFile("./Turret/", "turret");
     turretPromise2.then(obj2 => {
       turret2.obj = obj2.scene;
       turret2.obj.name = "turret2";
@@ -230,26 +188,26 @@ let startTime;
 startFPSCounter();
 
 function render() {
-  controlAirplane(airplane,target,raycaster,camera,objects_rc)
-  //Função para atualização da camera
-  updateCamera();
-  //Atualiza posição do plano atual
-  updatePlanePosition();
+  if (!stopGame){
+    controlAirplane(airplane,target,raycaster,camera,objects_rc,slackCamera)
+    //Função para atualização da camera
+    updateCamera();
+    //Atualiza posição do plano atual
+    updatePlanePosition();
 
-  for (let i = 0; i < planes.length; i++) {
-    let distance = camera.position.distanceTo(planes[i].position);
-    updateOpacity(planes[i], distance);
-  } 
-  //showInterceptionCoords(mouse);
-  updateZPosition(airplane.obj, airplane.obj.position.z-airplaneSpeed, airplane.box);
-  //updateZPosition(turret1.obj, turret1.obj.position.z-airplaneSpeed, turret1.box);
-  //updateZPosition(turret2.obj, turret2.obj.position.z-airplaneSpeed, turret2.box);
-  updateZPosition(planerc, airplane.obj.position.z);
-  updateZPosition(target, airplane.obj.position.z-200);
-  updateZPosition(light_dir, airplane.obj.position.z)
-  targetLight.position.z = airplane.obj.position.z;
-  light_dir.target = targetLight;
+    for (let i = 0; i < planes.length; i++) {
+      let distance = camera.position.distanceTo(planes[i].position);
+      updateOpacity(planes[i], distance);
+    } 
+    //showInterceptionCoords(mouse);
+    updateZPosition(airplane.obj, airplane.obj.position.z-airplaneSpeed, airplane.box);
 
+    updateZPosition(planerc, airplane.obj.position.z);
+    updateZPosition(target, airplane.obj.position.z-200);
+    updateZPosition(light_dir, airplane.obj.position.z)
+    targetLight.position.z = airplane.obj.position.z;
+    light_dir.target = targetLight;
+  }
   requestAnimationFrame(render);
   renderer.render(scene, camera);
 }
@@ -305,9 +263,11 @@ function setupKeyControls() {
       break;
       case "Escape":
       if(gameCanvas.style.cursor=='none'){
+        stopGame = true;
         gameCanvas.style.cursor = '';
       } else {
         gameCanvas.style.cursor = 'none';
+        stopGame = false;
       break;
     }
   }
@@ -319,7 +279,6 @@ function startFPSCounter() {
   startTime = performance.now();
   requestAnimationFrame(updateFPSCounter);
 }
-
 
 function updateFPSCounter() {
   frameCount++;
