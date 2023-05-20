@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import GUI from '../libs/util/dat.gui.module.js'
 import { OrbitControls } from '../build/jsm/controls/OrbitControls.js';
 import {initRenderer, 
-        SecondaryBox,
         setDefaultMaterial,
         onWindowResize,
         degreesToRadians
@@ -68,6 +67,7 @@ for (let i = 0; i < 50; i++) {
   scene.add(newPlane);
 }
 
+// Cria raycaster layers
 let objects_rc = [];
 let planerc, planeGeometry, planeMaterial;
 planeGeometry = new THREE.PlaneGeometry(width+20, height);
@@ -88,8 +88,14 @@ light_dir.target = targetLight;
 scene.add(targetLight);
 
 var targetGeometry = new THREE.CircleGeometry(5, 32);
-var targetMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+var targetMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 , transparent: true, opacity: 0.5});
 var target = new THREE.Mesh(targetGeometry, targetMaterial);
+
+var targetGeometry2 = new THREE.CircleGeometry(0.5, 32);
+var targetMaterial2 = new THREE.MeshBasicMaterial({ color: "#FFFFFF" , transparent: true, opacity: 1});
+var smallTarget = new THREE.Mesh(targetGeometry2, targetMaterial2);
+target.add(smallTarget);
+
 // Posicionar a target no plano de fundo
 target.position.z = -500; // Distância do avião ao plano de fundo
 scene.add(target);
@@ -105,8 +111,10 @@ const gui = new GUI();
 createController(gui, document, settings);
 setupKeyControls();
 
-//Cria o Avião
+//Cria o objeto airplane
 let airplane = {obj: null, box: new THREE.Box3()};
+
+// Cria o objeto turrets
 let turrets = [
   {obj: null, box: new THREE.Box3(), blinkStartTime: null},
   {obj: null, box: new THREE.Box3(), blinkStartTime: null},
@@ -115,8 +123,11 @@ let turrets = [
 let turretDistance = 500, turretScale = 0.15;
 
 let shots = new Set();
+
+// Carrega as promessas e inicia a simulação
 let promise = loadOBJFile("Arwing/", "Arwing");
 promise.then(obj => {
+  //Seta posição do avião
   airplane.obj = obj;
   airplane.obj.name = "airplane";
   airplane.obj.position.set(0.0, 20, 0.0);
@@ -132,6 +143,7 @@ promise.then(obj => {
 
   let turretPromise1 = loadDAEFile("./Turret/", "turret");
   turretPromise1.then(obj1 => {
+    //Seta escala, rotação e posição da torreta
     turrets[0].obj = obj1.scene;
     turrets[0].obj.name = "turret1";
     turrets[0].obj.scale.set(turretScale, turretScale, turretScale);
@@ -193,6 +205,7 @@ if(settings.showFPS){
 
 function render() {
   if (!stopGame){
+    //Função para controlar o avião
     controlAirplane(airplane,target,raycaster,camera,objects_rc,slackCamera)
     //Função para atualização da camera
     updateCamera();
@@ -204,21 +217,27 @@ function render() {
     for (let i = 0; i < planes.length; i++) {
       let distance = camera.position.distanceTo(planes[i].position);
       updateOpacity(planes[i], distance);
-    } 
+    }
     //showInterceptionCoords(mouse);
     updateObjectPosition(airplane.obj, 
       airplane.box,
       new THREE.Vector3(airplane.obj.position.x, airplane.obj.position.y, airplane.obj.position.z-airplaneSpeed), 
     );
 
+    //Atualiza luzes, plano do raycaster e target
     planerc.position.z = airplane.obj.position.z;
     target.position.z = airplane.obj.position.z-200;
     light_dir.position.z = airplane.obj.position.z;
     targetLight.position.z = airplane.obj.position.z;
     light_dir.target = targetLight;
+
+    //Atualiza posição dos tiros
     controlBullets(10);
+
+    //Animação da torreta se ela foi atingida
     turretAnimation();
 
+    //Rotaciona a camera nas margens
     rotateCamera();
 
   requestAnimationFrame(render);
@@ -227,13 +246,15 @@ function render() {
 
 function rotateCamera(){
   if(Math.abs(camera.rotation._z) < 1){
+    // If airplane is in the corner left, rotate positive degrees in z
     if(airplane.obj.position.x < -30){
       camera.rotation._z += 0.1;
     }
-    else if(airplane.obj.position.x > 30){
+    else if(airplane.obj.position.x > 30){ // If airplane is in the corner right, rotate negative degrees in z
       camera.rotation._z -= 0.1;
     }
     else {
+      // Restore default rotation
       camera.rotation._z += camera.rotation._z/Math.abs(camera.rotation._z) * 0.1;
       if(Math.abs(camera.rotation._z) < 0.1){
         camera.rotation._z = 0;
@@ -382,7 +403,7 @@ function fireShot() {
   scene.add(bullet2);
 }
 
-// Move the object towards the target at a constant speed
+// Move os tiros na direção do target com velocidade constante
 function controlBullets(speed) {
   shots.forEach(bullet => {
     var removeBullet = false;

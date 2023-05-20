@@ -1,5 +1,3 @@
-import {SecondaryBox
-} from "../libs/util/util.js";
 import * as THREE from 'three';
 
 // Mouse variables
@@ -47,16 +45,8 @@ export function controlAirplane(airplane, target, raycaster, camera, objects_rc)
 }
 
  
- export function onMouseMove(event) 
- {
-    pointer.x =  (event.clientX / window.innerWidth) * 2 - 1;
-    pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
-   }
-
- function showInterceptionCoords(point)
+export function onMouseMove(event) 
 {
-   leftBox.changeMessage("Intersection on Layer  " +  
-       point.x.toFixed(2) + ", " +
-       point.y.toFixed(2) + ", " + 
-       point.z + "]"); 
+   pointer.x =  (event.clientX / window.innerWidth) * 2 - 1;
+   pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
 }
