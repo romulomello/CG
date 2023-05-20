@@ -20,7 +20,6 @@ export function controlAirplane(airplane, target, raycaster, camera, objects_rc)
       var targetY = airplane.obj.position.y + (point.y - airplane.obj.position.y) * mouseDelay;
    
       targetX = Math.max(-32, Math.min(32, targetX));
-      console.log(targetX);
       targetY = Math.max(14, Math.min(40, targetY));
    
       var positionChanged = (targetX !== airplane.obj.position.x) || (targetY !== airplane.obj.position.y);

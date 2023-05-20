@@ -23,6 +23,7 @@ import {
 } from "./mouse.js";
 
 import { loadOBJFile, loadDAEFile } from './objImports.js';
+import { createController, startFPSCounter } from './guiSettings.js';
 
 let scene, renderer, camera, material, light, light_dir, orbit; // Inicia as Varaiveis
 scene = new THREE.Scene();    // Cria o cenario
@@ -46,6 +47,7 @@ scene.add( axesHelper );
 //Menu de configurações
 const settings = {
   showHelper: false,
+  showFPS: true,
   distanceX: 1,
   distanceY: 1,
   sensX: 1,
@@ -93,39 +95,26 @@ target.position.z = -500; // Distância do avião ao plano de fundo
 scene.add(target);
 
 //Variavel do indice do plano inicial
-let currentPlaneIndex = 0;
+let currentPlaneIndex = 0, currentTurretIndex = 0;
 //Variavel de distância maxima
 let maxDistance = planes.length * length; 
-
-const gui = new GUI()
-const controller = gui.addFolder('Settings');
-// Criação do subtítulo
-var subtitulo = document.createElement('div');
-subtitulo.innerHTML = 'Pressione 1, 2, 3 no teclado para controlar a velocidade e Esc para mostrar o cursor.</br>Use o menu abaixo para controlar os parâmetros de jogabilidade.';
-subtitulo.style.fontWeight = 'bold';
-subtitulo.style.marginTop = '10px';
-subtitulo.style.marginBottom = '10px';
-subtitulo.style.marginRight = '15px';
-
-// Adiciona o subtítulo como um controlador personalizado
-controller.__ul.insertBefore(subtitulo, controller.__ul.firstChild);
-// controller.add(settings,'airplaneSpeed',1,3);
 let airplaneSpeed = 0;
-let oldSpeed = 0;
 let stopGame = false;
-// controller.add(settings,'showHelper',false,true);
-controller.add(settings,'distanceX',1,1.5);
-controller.add(settings,'distanceY',1,1.5);
-controller.add(settings,'sensX',0.2,1.8);
-controller.add(settings,'sensY',0.2,1.8);
-controller.open();
+
+const gui = new GUI();
+createController(gui, document, settings);
 setupKeyControls();
 
 //Cria o Avião
 let airplane = {obj: null, box: new THREE.Box3()};
-let turret1 = {obj: null, box: new THREE.Box3()};
-let turret2 = {obj: null, box: new THREE.Box3()};
+let turrets = [
+  {obj: null, box: new THREE.Box3(), blinkStartTime: null},
+  {obj: null, box: new THREE.Box3(), blinkStartTime: null},
+  {obj: null, box: new THREE.Box3(), blinkStartTime: null}
+]
+let turretDistance = 500, turretScale = 0.15;
 
+let shots = new Set();
 let promise = loadOBJFile("Arwing/", "Arwing");
 promise.then(obj => {
   airplane.obj = obj;
@@ -143,33 +132,49 @@ promise.then(obj => {
 
   let turretPromise1 = loadDAEFile("./Turret/", "turret");
   turretPromise1.then(obj1 => {
-    turret1.obj = obj1.scene;
-    turret1.obj.name = "turret1";
-    turret1.obj.scale.set(0.1, 0.1, 0.1);
-    turret1.obj.position.set(20.0, 0.0, -300.0);
-    turret1.obj.rotation.set(0.0, -0.1, 0.0);
-    turret1.box = turret1.box.setFromObject( turret1.obj );
+    turrets[0].obj = obj1.scene;
+    turrets[0].obj.name = "turret1";
+    turrets[0].obj.scale.set(turretScale, turretScale, turretScale);
+    turrets[0].obj.position.set(20.0, 0.0, -turretDistance);
+    turrets[0].obj.rotation.set(0.0, -0.1, 0.0);
+    turrets[0].box = turrets[0].box.setFromObject( turrets[0].obj );
     if(settings.showHelper) {
-      let helper = new THREE.Box3Helper( turret1.box, 0xffff00 );
+      let helper = new THREE.Box3Helper( turrets[0].box, 0xffff00 );
       scene.add( helper );
     }
-    scene.add(turret1.obj);
+    scene.add(turrets[0].obj);
 
     let turretPromise2 = loadDAEFile("./Turret/", "turret");
     turretPromise2.then(obj2 => {
-      turret2.obj = obj2.scene;
-      turret2.obj.name = "turret2";
-      turret2.obj.scale.set(0.1, 0.1, 0.1);
-      turret2.obj.position.set(-20.0, 0.0, -300.0);
-      turret2.obj.rotation.set(0.0, 0.1, 0.0);
-      turret2.box = turret2.box.setFromObject( turret2.obj );
+      turrets[1].obj = obj2.scene;
+      turrets[1].obj.name = "turret2";
+      turrets[1].obj.scale.set(turretScale, turretScale, turretScale);
+      turrets[1].obj.position.set(-20.0, 0.0, -2 * turretDistance);
+      turrets[1].obj.rotation.set(0.0, 0.1, 0.0);
+      turrets[1].box = turrets[1].box.setFromObject( turrets[1].obj );
       if(settings.showHelper) {
-        let helper = new THREE.Box3Helper( turret2.box, 0xffff00 );
+        let helper = new THREE.Box3Helper( turrets[1].box, 0xffff00 );
         scene.add( helper );
       }
-      scene.add(turret2.obj);
+      scene.add(turrets[1].obj);
 
-      render();
+      let turretPromise3 = loadDAEFile("Turret/", "turret");
+      turretPromise3.then(obj3 => {
+        turrets[2].obj = obj3.scene;
+        turrets[2].obj.name = "turret3";
+        turrets[2].obj.scale.set(turretScale, turretScale, turretScale);
+        turrets[2].obj.position.set(20.0, 0.0, -3 * turretDistance);
+        turrets[2].obj.rotation.set(0.0, -0.1, 0.0);
+        turrets[2].box = turrets[2].box.setFromObject( turrets[2].obj );
+        if(settings.showHelper) {
+          let helper = new THREE.Box3Helper( turrets[2].box, 0xffff00 );
+          scene.add( helper );
+        }
+        scene.add(turrets[2].obj);
+
+        render();
+      });
+
     });
 
   });
@@ -181,11 +186,10 @@ var gameCanvas = document.getElementById('webgl-output');
 // Ocultar o cursor do mouse
 gameCanvas.style.cursor = 'none';
 light_dir.target.position.set(0,12,0);
-let frameCount = 0;
-let fpsContainer;
-let startTime;
 
-startFPSCounter();
+if(settings.showFPS){
+  startFPSCounter();
+}
 
 function render() {
   if (!stopGame){
@@ -194,29 +198,56 @@ function render() {
     updateCamera();
     //Atualiza posição do plano atual
     updatePlanePosition();
+    //Atualiza posição das torretas
+    updateTurretPosition();
 
     for (let i = 0; i < planes.length; i++) {
       let distance = camera.position.distanceTo(planes[i].position);
       updateOpacity(planes[i], distance);
     } 
     //showInterceptionCoords(mouse);
-    updateZPosition(airplane.obj, airplane.obj.position.z-airplaneSpeed, airplane.box);
+    updateObjectPosition(airplane.obj, 
+      airplane.box,
+      new THREE.Vector3(airplane.obj.position.x, airplane.obj.position.y, airplane.obj.position.z-airplaneSpeed), 
+    );
 
-    updateZPosition(planerc, airplane.obj.position.z);
-    updateZPosition(target, airplane.obj.position.z-200);
-    updateZPosition(light_dir, airplane.obj.position.z)
+    planerc.position.z = airplane.obj.position.z;
+    target.position.z = airplane.obj.position.z-200;
+    light_dir.position.z = airplane.obj.position.z;
     targetLight.position.z = airplane.obj.position.z;
     light_dir.target = targetLight;
+    controlBullets(10);
+    
+    turrets.forEach(turret => {
+      if (turret.blinkStartTime !== null) {
+        var currentTime = Date.now();
+        var elapsedTime = currentTime - turret.blinkStartTime;
+    
+        // Check if the elapsed time is less than 500 milliseconds
+        if (elapsedTime < 500) {
+          // Toggle visibility of the mesh based on the elapsed time
+          turret.obj.visible = Math.floor(elapsedTime / 100) % 2 === 0;
+        } else {
+          // Disable the blink animation after 500 milliseconds
+          turret.blinkStartTime = null;
+          turret.obj.visible = false;
+        }
+      }
+    });
   }
+
   requestAnimationFrame(render);
   renderer.render(scene, camera);
 }
 
-function updateZPosition(object, newZ, box = null) {
-  object.position.z = newZ;
-  if(box != null) {
-    box = box.setFromObject(object);
+function updateObjectPosition(object, box, newPosition, rotation = null) {
+  object.position.x = newPosition.x;
+  object.position.y = newPosition.y;
+  object.position.z = newPosition.z;
+  if(rotation != null){
+    object.rotation.set(rotation.x, rotation.y, rotation.z);
   }
+  box = box.setFromObject(object);
 }
 
 function updateOpacity(object, distance) {
@@ -245,9 +276,36 @@ function updatePlanePosition() {
   }
 }
 
+function updateTurretPosition() {
+  var turret = turrets[currentTurretIndex];
+  if(airplane.obj.position.z < turret.obj.position.z){
+    updateObjectPosition(turret.obj, 
+      turret.box, 
+      new THREE.Vector3(-turret.obj.position.x, turret.obj.position.y, turret.obj.position.z - 3 * turretDistance),
+      new THREE.Vector3(turret.obj.rotation.x, -2 * turret.obj.rotation.y, turret.obj.rotation.z)
+    );
+    turret.obj.visible = true;
+    turret.obj.blinkStartTime = null;
+    currentTurretIndex = (currentTurretIndex + 1) % turrets.length;
+  }
+}
+
+// Event listener for mouse click
+document.addEventListener('mousedown', function(event) {
+  if (event.button === 0) {
+    if(stopGame){
+      // Resume the simulation if it was paused
+      stopGame = false;
+      gameCanvas.style.cursor = 'none';
+    }
+    else{
+      fireShot();
+    }
+  }
+});
+
 function setupKeyControls() {
   document.onkeydown = function(e) {
-    console.log(e);
     switch (e.key) {
       case "0":
       airplaneSpeed = 0;
@@ -262,31 +320,76 @@ function setupKeyControls() {
       airplaneSpeed = 3;
       break;
       case "Escape":
-      if(gameCanvas.style.cursor=='none'){
-        stopGame = true;
-        gameCanvas.style.cursor = '';
-      } else {
-        gameCanvas.style.cursor = 'none';
-        stopGame = false;
+      stopGame = true;
+      gameCanvas.style.cursor = '';
       break;
-    }
   }
   };
 }
 
-function startFPSCounter() {
-  fpsContainer = document.getElementById('fps-counter');
-  startTime = performance.now();
-  requestAnimationFrame(updateFPSCounter);
+function fireShot() {
+  let bulletGeometry = new THREE.CylinderGeometry(0.05, 0.05, 1, 4);
+  let bulletMaterial = new THREE.MeshBasicMaterial("0xffffff");
+  let bullet1 = new THREE.Mesh(bulletGeometry, bulletMaterial);
+  let bullet2 = new THREE.Mesh(bulletGeometry, bulletMaterial);
+  let airplanePos = airplane.obj.getWorldPosition(new THREE.Vector3());
+  bullet1.position.x = airplanePos.x-1;
+  bullet1.position.y = airplanePos.y-1.5;
+  bullet1.position.z = airplanePos.z-0.5;
+
+  bullet2.position.x = airplanePos.x+1;
+  bullet2.position.y = airplanePos.y-1.5;
+  bullet2.position.z = airplanePos.z-0.5;
+
+  let targetPosition = target.getWorldPosition(new THREE.Vector3());
+  let dir1 = new THREE.Vector3();
+  dir1.subVectors( targetPosition, bullet1.position ).normalize();
+  bullet1.lookAt(dir1);
+
+  let dir2 = new THREE.Vector3();
+  dir2.subVectors( targetPosition, bullet2.position ).normalize();
+  bullet2.lookAt(dir2);
+
+  let box1 = new THREE.Box3();
+  let box2 = new THREE.Box3();
+
+  shots.add({obj: bullet1, targetPos: targetPosition, dir: dir1, box: box1.setFromObject(bullet1)});
+  shots.add({obj: bullet2, targetPos: targetPosition, dir: dir2, box: box2.setFromObject(bullet2)});
+
+  scene.add(bullet1);
+  scene.add(bullet2);
 }
 
-function updateFPSCounter() {
-  frameCount++;
-  const currentTime = performance.now();
-  const elapsedSeconds = (currentTime - startTime) / 1000;
-  const fps = Math.round(frameCount / elapsedSeconds);
-
-  fpsContainer.innerHTML = `FPS: ${fps}`;
-
-  requestAnimationFrame(updateFPSCounter);
+// Move the object towards the target at a constant speed
+function controlBullets(speed) {
+  shots.forEach(bullet => {
+    var removeBullet = false;
+    var increment = bullet.dir.clone().multiplyScalar(speed);
+    var distance = camera.position.distanceTo(bullet.obj.position);
+    if(bullet.obj.position.z < -length * planes.length | bullet.obj.position.y < 0){
+      removeBullet = true;
+    }
+    else{
+      turrets.forEach(turret => {
+        if(turret.box.intersectsBox(bullet.box)){
+          console.log(turret.obj.position);
+          turret.blinkStartTime = Date.now();
+          removeBullet = true;
+        }
+      })
+    }
+    if(removeBullet){
+      shots.delete(bullet);
+      scene.remove(bullet.obj);
+    }
+    else{
+      bullet.obj.position.add(increment);
+      let dir = new THREE.Vector3();
+      dir.subVectors( bullet.targetPos, bullet.obj.position ).normalize();
+      bullet.obj.lookAt(dir);
+      bullet.obj.rotateX(-Math.PI/2);
+      updateOpacity(bullet.obj, distance);
+      bullet.box = bullet.box.setFromObject(bullet.obj);
+    }
+  })
 }
