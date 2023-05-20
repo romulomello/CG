@@ -217,27 +217,49 @@ function render() {
     targetLight.position.z = airplane.obj.position.z;
     light_dir.target = targetLight;
     controlBullets(10);
-    
-    turrets.forEach(turret => {
-      if (turret.blinkStartTime !== null) {
-        var currentTime = Date.now();
-        var elapsedTime = currentTime - turret.blinkStartTime;
-    
-        // Check if the elapsed time is less than 500 milliseconds
-        if (elapsedTime < 500) {
-          // Toggle visibility of the mesh based on the elapsed time
-          turret.obj.visible = Math.floor(elapsedTime / 100) % 2 === 0;
-        } else {
-          // Disable the blink animation after 500 milliseconds
-          turret.blinkStartTime = null;
-          turret.obj.visible = false;
-        }
-      }
-    });
-  }
+    turretAnimation();
+
+    rotateCamera();
 
   requestAnimationFrame(render);
   renderer.render(scene, camera);
+}
+
+function rotateCamera(){
+  if(Math.abs(camera.rotation._z) < 1){
+    if(airplane.obj.position.x < -30){
+      camera.rotation._z += 0.1;
+    }
+    else if(airplane.obj.position.x > 30){
+      camera.rotation._z -= 0.1;
+    }
+    else {
+      camera.rotation._z += camera.rotation._z/Math.abs(camera.rotation._z) * 0.1;
+      if(Math.abs(camera.rotation._z) < 0.1){
+        camera.rotation._z = 0;
+      }
+    }
+  }
+}
+
+function turretAnimation() {
+  turrets.forEach(turret => {
+    if (turret.blinkStartTime !== null) {
+      var currentTime = Date.now();
+      var elapsedTime = currentTime - turret.blinkStartTime;
+  
+      // Check if the elapsed time is less than 500 milliseconds
+      if (elapsedTime < 500) {
+        // Toggle visibility of the mesh based on the elapsed time
+        turret.obj.visible = Math.floor(elapsedTime / 100) % 2 === 0;
+      } else {
+        // Disable the blink animation after 500 milliseconds
+        turret.blinkStartTime = null;
+        turret.obj.visible = false;
+      }
+    }
+  });
+}
 }
 
 function updateObjectPosition(object, box, newPosition, rotation = null) {
@@ -366,7 +388,7 @@ function controlBullets(speed) {
     var removeBullet = false;
     var increment = bullet.dir.clone().multiplyScalar(speed);
     var distance = camera.position.distanceTo(bullet.obj.position);
-    if(bullet.obj.position.z < -length * planes.length | bullet.obj.position.y < 0){
+    if(bullet.obj.position.z < -length * planes.length/2 | bullet.obj.position.y < 0){
       removeBullet = true;
     }
     else{
