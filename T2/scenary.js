@@ -31,7 +31,6 @@ export function createTree(x, z) {
     level2.position.x = x
     level2.position.y = 4
     level2.position.z = z
-    //level2.castShadow = true;
     group.add(level2)
     const level3 = new THREE.Mesh(
         new THREE.ConeGeometry(3,2,8),
@@ -44,7 +43,7 @@ export function createTree(x, z) {
     group.add(level3)
     const trunk = new THREE.Mesh(
         new THREE.CylinderGeometry(0.5,0.5,2),
-        new THREE.MeshLambertMaterial({color:0xbb6600, transparent: true })
+        new THREE.MeshStandardMaterial({color:0xbb6600, transparent: true })
     )
     trunk.position.x = x
     trunk.position.y = 1
@@ -98,7 +97,11 @@ export function addWalls(plane, width, length, height, gcolor) {
   cubeLeft.add(edgesLeft);
   cubeRight.add(edgesRight);
   cubeLeft.receiveShadow = true;
+  cubeLeft.material.transparent = false;
+  cubeLeft.material.opacity = 1;
   cubeRight.receiveShadow = true;
+  cubeRight.material.transparent = false;
+  cubeRight.material.opacity = 1;
   plane.add(cubeLeft);
   plane.add(cubeRight);
 }

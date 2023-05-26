@@ -28,8 +28,7 @@ let scene, renderer, camera, material, light, light_dir, orbit; // Inicia as Var
 scene = new THREE.Scene();    // Cria o cenario
 renderer = initRenderer();    // Inicia o render
 renderer.shadowMap.type = THREE.PCFShadowMap;
-let slackCamera = 0;
-camera = initCamera(new THREE.Vector3(0+slackCamera, 20, 20)); // Inicia a camera
+camera = initCamera(new THREE.Vector3(0, 20, 20)); // Inicia a camera
 material = setDefaultMaterial(); 
 light = initDefaultBasicLight(scene);
 light_dir = initDirLight(scene);
@@ -63,6 +62,8 @@ for (let i = 0; i < 50; i++) {
   newPlane.translateZ(i * (-length));
   newPlane.rotateX(degreesToRadians(-90));
   newPlane.receiveShadow = true;
+  newPlane.material.transparent = false;
+  newPlane.material.opacity = 1;
   planes.push(newPlane);
   scene.add(newPlane);
 }
@@ -104,7 +105,7 @@ scene.add(target);
 let currentPlaneIndex = 0, currentTurretIndex = 0;
 //Variavel de distância maxima
 let maxDistance = planes.length * length; 
-let airplaneSpeed = 0;
+let airplaneSpeed = 1;
 let stopGame = false;
 
 const gui = new GUI();
@@ -125,7 +126,7 @@ let turretDistance = 500, turretScale = 0.15;
 let shots = new Set();
 
 // Carrega as promessas e inicia a simulação
-let promise = loadOBJFile("Arwing/", "Arwing");
+let promise = loadOBJFile("./Arwing/", "Arwing");
 promise.then(obj => {
   //Seta posição do avião
   airplane.obj = obj;
@@ -210,7 +211,7 @@ if(settings.showFPS){
 function render() {
   if (!stopGame){
     //Função para controlar o avião
-    controlAirplane(airplane,target,raycaster,camera,objects_rc,slackCamera)
+    controlAirplane(airplane,target,raycaster,camera,objects_rc)
     //Função para atualização da camera
     updateCamera();
     //Atualiza posição do plano atual
@@ -232,18 +233,19 @@ function render() {
     planerc.position.z = airplane.obj.position.z;
     target.position.z = airplane.obj.position.z-200;
     light_dir.position.z = airplane.obj.position.z;
-    targetLight.position.z = airplane.obj.position.z;
+    targetLight.position.z = airplane.obj.position.z-10*3;
     light_dir.target = targetLight;
 
     //Atualiza posição dos tiros
     controlBullets(10);
+    //console.log(currentPlaneIndex)
 
     //Animação da torreta se ela foi atingida
     turretAnimation();
 
     //Rotaciona a camera nas margens
     rotateCamera();
-
+  }
   requestAnimationFrame(render);
   renderer.render(scene, camera);
 }
@@ -251,11 +253,11 @@ function render() {
 function rotateCamera(){
   if(Math.abs(camera.rotation._z) < 1){
     // If airplane is in the corner left, rotate positive degrees in z
-    if(airplane.obj.position.x < -30){
+    if(airplane.obj.position.x < -20){
       // camera.rotation._z += 0.1;
       camera.rotateZ(0.01);
     }
-    else if(airplane.obj.position.x > 30){ // If airplane is in the corner right, rotate negative degrees in z
+    else if(airplane.obj.position.x > 20){ // If airplane is in the corner right, rotate negative degrees in z
       // camera.rotation._z -= 0.1;
       camera.rotateZ(-0.01);
     }
@@ -287,7 +289,7 @@ function turretAnimation() {
     }
   });
 }
-}
+
 
 function updateObjectPosition(object, box, newPosition, rotation = null) {
   object.position.x = newPosition.x;
@@ -304,7 +306,9 @@ function updateOpacity(object, distance) {
   let maxVision = 0.8;
   if (distance < maxDistance * maxVision) {
     opacity = 1;
+    object.material.transparent = false;
   } else if (distance < maxDistance) {
+    object.material.transparent = true;
     var percentage = (distance - maxDistance * maxVision) / (maxDistance * (1 - maxVision));
     opacity = 1 - percentage;
   }
@@ -312,9 +316,10 @@ function updateOpacity(object, distance) {
 }
 
 function updateCamera() {
-  camera.position.x = airplane.obj.position.x;
-  camera.position.y = (airplane.obj.position.y + (3 * settings.distanceX));
-  camera.position.z = (airplane.obj.position.z + (13 * settings.distanceY));
+  camera.position.x = airplane.obj.position.x + (airplane.obj.position.x/10)*-1;
+  var maxY = (airplane.obj.position.y + (6))+((airplane.obj.position.y/6)*-1);
+  camera.position.y = maxY;
+  camera.position.z = (airplane.obj.position.z + (20 * settings.distanceY));
   camera.lookAt(airplane.obj.position);
 }
 
@@ -341,7 +346,7 @@ function updateTurretPosition() {
 
 // Event listener for mouse click
 document.addEventListener('mousedown', function(event) {
-  if (event.button === 0) {
+  if (event.button == 0) {
     if(stopGame){
       // Resume the simulation if it was paused
       stopGame = false;
@@ -375,35 +380,36 @@ function setupKeyControls() {
   }
   };
 }
-
 function fireShot() {
   let bulletGeometry = new THREE.CylinderGeometry(0.05, 0.05, 1, 4);
-  let bulletMaterial = new THREE.MeshBasicMaterial("0xffffff");
+  let bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff }); 
   let bullet1 = new THREE.Mesh(bulletGeometry, bulletMaterial);
   let bullet2 = new THREE.Mesh(bulletGeometry, bulletMaterial);
   let airplanePos = airplane.obj.getWorldPosition(new THREE.Vector3());
-  bullet1.position.x = airplanePos.x-1;
-  bullet1.position.y = airplanePos.y-1.5;
-  bullet1.position.z = airplanePos.z-0.5;
+  bullet1.position.copy(airplanePos); 
+  bullet2.position.copy(airplanePos); 
+  bullet1.position.x -= 1;
+  bullet1.position.y -= 1.5;
+  bullet1.position.z -= 0.5;
 
-  bullet2.position.x = airplanePos.x+1;
-  bullet2.position.y = airplanePos.y-1.5;
-  bullet2.position.z = airplanePos.z-0.5;
+  bullet2.position.x += 1;
+  bullet2.position.y -= 1.5;
+  bullet2.position.z -= 0.5;
 
   let targetPosition = target.getWorldPosition(new THREE.Vector3());
   let dir1 = new THREE.Vector3();
-  dir1.subVectors( targetPosition, bullet1.position ).normalize();
-  bullet1.lookAt(dir1);
+  dir1.subVectors(targetPosition, bullet1.position).normalize();
+  bullet1.lookAt(targetPosition);
 
   let dir2 = new THREE.Vector3();
-  dir2.subVectors( targetPosition, bullet2.position ).normalize();
-  bullet2.lookAt(dir2);
+  dir2.subVectors(targetPosition, bullet2.position).normalize();
+  bullet2.lookAt(targetPosition);
 
-  let box1 = new THREE.Box3();
-  let box2 = new THREE.Box3();
+  let box1 = new THREE.Box3().setFromObject(bullet1);
+  let box2 = new THREE.Box3().setFromObject(bullet2);
 
-  shots.add({obj: bullet1, targetPos: targetPosition, dir: dir1, box: box1.setFromObject(bullet1)});
-  shots.add({obj: bullet2, targetPos: targetPosition, dir: dir2, box: box2.setFromObject(bullet2)});
+  shots.add({ obj: bullet1, targetPos: targetPosition, dir: dir1, box: box1 });
+  shots.add({ obj: bullet2, targetPos: targetPosition, dir: dir2, box: box2 });
 
   scene.add(bullet1);
   scene.add(bullet2);
@@ -415,30 +421,28 @@ function controlBullets(speed) {
     var removeBullet = false;
     var increment = bullet.dir.clone().multiplyScalar(speed);
     var distance = camera.position.distanceTo(bullet.obj.position);
-    if(bullet.obj.position.z < -length * planes.length/2 | bullet.obj.position.y < 0){
+    if (distance > 1000 || bullet.obj.position.y < 0) { 
       removeBullet = true;
-    }
-    else{
+    } else {
       turrets.forEach(turret => {
-        if(turret.box.intersectsBox(bullet.box)){
+        if (turret.box.intersectsBox(bullet.box)) {
           console.log(turret.obj.position);
           turret.blinkStartTime = Date.now();
           removeBullet = true;
         }
-      })
+      });
     }
-    if(removeBullet){
+    if (removeBullet) {
       shots.delete(bullet);
       scene.remove(bullet.obj);
-    }
-    else{
+    } else {
       bullet.obj.position.add(increment);
       let dir = new THREE.Vector3();
-      dir.subVectors( bullet.targetPos, bullet.obj.position ).normalize();
-      bullet.obj.lookAt(dir);
-      bullet.obj.rotateX(-Math.PI/2);
+      dir.subVectors(bullet.targetPos, bullet.obj.position).normalize();
+      bullet.obj.lookAt(bullet.targetPos);
+      bullet.obj.rotateX(-Math.PI / 2);
       updateOpacity(bullet.obj, distance);
       bullet.box = bullet.box.setFromObject(bullet.obj);
     }
-  })
+  });
 }

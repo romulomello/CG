@@ -33,22 +33,22 @@ export function initDefaultBasicLight(scene, castShadow = false, position = new 
 
 export function initDirLight(scene){
     const light_dir = new THREE.DirectionalLight( 0xffffff, 1.5 ); // Cria uma luz direcional na cor branca
-    light_dir.position.set(20, 30, 0);
+    light_dir.position.set(8*6, 14*3, 0);
     light_dir.castShadow = true;
 
     // Configurar a resolução das sombras
-    light_dir.shadow.mapSize.width = 2048;
-    light_dir.shadow.mapSize.height = 2048;
+    light_dir.shadow.mapSize.width = 3000;
+    light_dir.shadow.mapSize.height = 3000;
 
     // Definir a área de projeção das sombras
-    light_dir.shadow.camera.near = 1;
-    light_dir.shadow.camera.far = 100;
+    light_dir.shadow.camera.near = 0.1;
+    light_dir.shadow.camera.far = 1200;
 
-    light_dir.shadow.camera.left = 10;
-    light_dir.shadow.camera.right = 2000;
-    light_dir.shadow.camera.top = 30;
-    light_dir.shadow.camera.bottom = -70;
-    light_dir.shadow.bias = -0.01;
+    light_dir.shadow.camera.left = -200;
+    light_dir.shadow.camera.right = 1000;
+    light_dir.shadow.camera.top = 300;
+    light_dir.shadow.camera.bottom = -80;
+    light_dir.shadow.bias = -0.001;
 
     scene.add(light_dir);
     return light_dir;

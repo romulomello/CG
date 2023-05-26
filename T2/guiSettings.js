@@ -16,10 +16,10 @@ export function createController(gui, document, settings){
     controller.__ul.insertBefore(subtitulo, controller.__ul.firstChild);
 
     // controller.add(settings,'showHelper',false,true);
-    controller.add(settings,'distanceX',1,1.5);
+    //controller.add(settings,'distanceX',1,1.5);
     controller.add(settings,'distanceY',1,1.5);
-    controller.add(settings,'sensX',0.2,1.8);
-    controller.add(settings,'sensY',0.2,1.8);
+    //controller.add(settings,'sensX',0.2,1.8);
+    //controller.add(settings,'sensY',0.2,1.8);
     controller.open();
 }
 
