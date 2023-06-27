@@ -18,6 +18,7 @@ import {
 
 import { loadOBJFile, loadDAEFile } from './objImports.js';
 import { createController, startFPSCounter } from './guiSettings.js';
+import { createTarget, fireShot } from './shotsAndTarget.js';
 
 let scene, renderer, camera, material, light, light_dir, orbit; // Inicia as Varaiveis
 scene = new THREE.Scene();    // Cria o cenario
@@ -35,6 +36,7 @@ orbit = new OrbitControls( camera, renderer.domElement ); // Habilita o mouse
 window.addEventListener('resize', function () { onWindowResize(camera, renderer) }, false);
 window.addEventListener('mousemove', onMouseMove, false);
 window.addEventListener('mousedown', onMouseDown, false);
+window.addEventListener('mouseup', onMouseUp, false);
 
 let axesHelper = new THREE.AxesHelper( 12 );
 scene.add( axesHelper );
@@ -48,6 +50,8 @@ const settings = {
   sensX: 0.5,
   sensY: 0.5,
 };
+
+let mouseIsDown = false;
 
 // create the ground plane
 let planes = [];
@@ -67,46 +71,40 @@ for (let i = 0; i < 50; i++) {
 
 // Cria raycaster layers
 let objects_rc = [];
-let planerc, planeGeometry, planeMaterial;
+let plane_rc, planeGeometry, planeMaterial;
+let rc_offset = 100;
 planeGeometry = new THREE.PlaneGeometry(width+20, height);
 planeMaterial = new THREE.MeshLambertMaterial();
 planeMaterial.side = THREE.DoubleSide;
 planeMaterial.transparent = true;
-planeMaterial.visible = false
-planerc = new THREE.Mesh(planeGeometry, planeMaterial);
-planerc.position.set(0,25,-10);
-planerc.layers.set(0);
-scene.add(planerc);
-objects_rc.push(planerc);
+planeMaterial.visible = false;
+plane_rc = new THREE.Mesh(planeGeometry, planeMaterial);
+plane_rc.position.set(0, height/2, -rc_offset);
+plane_rc.layers.set(0);
+
+objects_rc.push(plane_rc);
 raycaster.layers.enable( 0 );
-
+scene.add(plane_rc);
 camera.layers.enable( 0 );
-
-var mouseDelay = 0.05;
 
 var targetLight = new THREE.Object3D();
 targetLight.position.set(0, 25, 0);
 light_dir.target = targetLight;
 scene.add(targetLight);
 
-var targetGeometry = new THREE.CircleGeometry(3, 32);
-var targetMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 , transparent: true, opacity: 0.5});
-var target = new THREE.Mesh(targetGeometry, targetMaterial);
-
-var targetGeometry2 = new THREE.CircleGeometry(0.3, 32);
-var targetMaterial2 = new THREE.MeshBasicMaterial({ color: "#FFFFFF" , transparent: true, opacity: 1});
-var smallTarget = new THREE.Mesh(targetGeometry2, targetMaterial2);
-target.add(smallTarget);
-
 // Posicionar a target no plano de fundo
-target.position.set(pointer.x, pointer.y, -100); // Distância do avião ao plano de fundo
+let target = createTarget(1);
+target.position.set(0, 0, -rc_offset); // Distância do avião ao plano de fundo
 scene.add(target);
 
 //Variavel do indice do plano inicial
 let currentPlaneIndex = 0, currentTurretIndex = 0;
 //Variavel de distância maxima
 let maxDistance = planes.length * length; 
-let airplaneSpeed = 1;
+let initialSpeed = 1.5;
+let airplaneSpeed = initialSpeed;
+let shotSpeed = 20;
+var mouseDelay = 0.05;
 let stopGame = true;
 
 const gui = new GUI();
@@ -203,12 +201,14 @@ promise.then(obj => {
 // Obtenha o elemento do canvas
 var gameCanvas = document.getElementById('webgl-output');
 // Ocultar o cursor do mouse
-// gameCanvas.style.cursor = 'none';
+gameCanvas.style.cursor = 'none';
 light_dir.target.position.set(0,12,0);
 
 if(settings.showFPS){
   startFPSCounter();
 }
+
+let clock = new THREE.Clock();
 
 function render() {
   if (!stopGame){
@@ -233,14 +233,20 @@ function render() {
     );
 
     //Atualiza luzes, plano do raycaster e target
-    planerc.position.z = airplane.obj.position.z-100;
-    target.position.z = airplane.obj.position.z-100;
+    plane_rc.position.z = airplane.obj.position.z-rc_offset;
+    target.position.z = airplane.obj.position.z-rc_offset;
     light_dir.position.z = airplane.obj.position.z;
     targetLight.position.z = airplane.obj.position.z-10*3;
     light_dir.target = targetLight;
 
+    var delta = clock.getDelta();
+
+    if (mouseIsDown && clock.elapsedTime >= 0.2) {
+      fireShot(airplane, target, shots, scene);
+      clock.start();
+    }
     //Atualiza posição dos tiros
-    controlBullets(10);
+    controlBullets(shotSpeed);
 
     //Animação da torreta se ela foi atingida
     turretAnimation();
@@ -353,13 +359,13 @@ function setupKeyControls() {
       airplaneSpeed = 0;
       break;
       case "1":
-      airplaneSpeed = 1;
+      airplaneSpeed = initialSpeed;
       break;
       case "2":
-      airplaneSpeed = 2;
+      airplaneSpeed = 2 * initialSpeed;
       break;
       case "3":
-      airplaneSpeed = 3;
+      airplaneSpeed = 3 * initialSpeed;
       break;
       case "Escape":
       stopGame = true;
@@ -367,41 +373,6 @@ function setupKeyControls() {
       break;
   }
   };
-}
-
-function fireShot() {
-  let bulletGeometry = new THREE.CylinderGeometry(0.05, 0.05, 1, 4);
-  let bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff }); 
-  let bullet1 = new THREE.Mesh(bulletGeometry, bulletMaterial);
-  let bullet2 = new THREE.Mesh(bulletGeometry, bulletMaterial);
-  let airplanePos = airplane.obj.getWorldPosition(new THREE.Vector3());
-  bullet1.position.copy(airplanePos); 
-  bullet2.position.copy(airplanePos); 
-  bullet1.position.x -= 1;
-  // bullet1.position.y -= 1.5;
-  // bullet1.position.z -= 0.5;
-
-  bullet2.position.x += 1;
-  // bullet2.position.y -= 1.5;
-  // bullet2.position.z -= 0.5;
-
-  let targetPosition = target.getWorldPosition(new THREE.Vector3());
-  let dir1 = new THREE.Vector3();
-  dir1.subVectors(targetPosition, bullet1.position).normalize();
-  bullet1.lookAt(targetPosition);
-
-  let dir2 = new THREE.Vector3();
-  dir2.subVectors(targetPosition, bullet2.position).normalize();
-  bullet2.lookAt(targetPosition);
-
-  let box1 = new THREE.Box3().setFromObject(bullet1);
-  let box2 = new THREE.Box3().setFromObject(bullet2);
-
-  shots.add({ obj: bullet1, targetPos: targetPosition, dir: dir1, box: box1 });
-  shots.add({ obj: bullet2, targetPos: targetPosition, dir: dir2, box: box2 });
-
-  scene.add(bullet1);
-  scene.add(bullet2);
 }
 
 // Move os tiros na direção do target com velocidade constante
@@ -415,9 +386,9 @@ function controlBullets(speed) {
     } else {
       turrets.forEach(turret => {
         if (turret.box.intersectsBox(bullet.box)) {
-          console.log(turret.obj.position);
-          console.log(bullet.obj.position);
-          console.log(pointer.x, pointer.y)
+          // console.log(turret.obj.position);
+          // console.log(bullet.obj.position);
+          // console.log(pointer.x, pointer.y)
           turret.blinkStartTime = Date.now();
           removeBullet = true;
         }
@@ -436,7 +407,7 @@ function controlBullets(speed) {
       bullet.box = bullet.box.setFromObject(bullet.obj);
     }
     // turrets.forEach(turret => {
-    //   console.log(turret.obj.osition);
+    //   console.log(turret.obj.position);
     // })
   });
 }
@@ -446,9 +417,10 @@ function controlAirplane(pointer, camera) {
   raycaster.setFromCamera(pointer, camera);
   // calculate objects intersecting the picking ray
   var intersects = raycaster.intersectObjects(objects_rc, true);
-
+  // console.log(intersects)
   if (intersects.length > 0) // Check if there is a intersection
   {
+      // console.log(target.position.x, target.position.y)
       let point = intersects[0].point; // Pick the point where interception occurrs
       var targetX = airplane.obj.position.x + (point.x - airplane.obj.position.x) * mouseDelay;
       var targetY = airplane.obj.position.y + (point.y - airplane.obj.position.y) * mouseDelay;
@@ -493,8 +465,8 @@ function onMouseMove(event)
 {
   event.preventDefault();
   if (!stopGame) {
-    pointer.x =  (event.clientX / window.innerWidth) * 2 - 0.9995;
-    pointer.y = -(event.clientY / window.innerHeight) * 2 + 1.045;
+    pointer.x =  (event.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = -(event.clientY / window.innerHeight) * 2 + 1.1;
   }
 }
 
@@ -506,6 +478,12 @@ function onMouseDown(event)
     stopGame = false;
     gameCanvas.style.cursor = 'none';
   } else {
-    fireShot();
+    mouseIsDown = true;
   }
+}
+
+function onMouseUp(event)
+{
+  event.preventDefault();
+  mouseIsDown = false;
 }
