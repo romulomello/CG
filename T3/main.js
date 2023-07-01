@@ -77,10 +77,10 @@ const settings = {
 };
 
 let mouseIsDown = false;
-// let cursorStyle = 'none';
-let cursorStyle = true;
+let cursorStyle = 'none';
+// let cursorStyle = true;
 
-var metal = textureLoader.load('./textures/light100.png')
+var metal = textureLoader.load('./textures/trench.png')
 
 // create the ground plane
 let planes = [];
@@ -134,7 +134,7 @@ let currentPlaneIndex = 0, currentTurretIndex = 0;
 //Variavel de distância maxima
 let maxDistance = planes.length * length; 
 let initialSpeed = 1.5;
-let airplaneSpeed = 0;
+let airplaneSpeed = initialSpeed;
 let airplaneShotSpeed = 20;
 let turretShotSpeed = 15;
 var mouseDelay = 0.05;
@@ -276,7 +276,6 @@ function render() {
   if (!stopGame){
     //Função para controlar o avião
     controlAirplane(pointer, camera);
-    // controlAirplane(airplane,target,raycaster,camera,objects_rc)
     //Função para atualização da camera
     updateCamera();
     //Atualiza posição do plano atual
@@ -311,7 +310,6 @@ function render() {
 
     if (turretShotClock.elapsedTime >= 4-airplaneSpeed/3) {
       turrets.forEach(turret => {
-        // console.log(turret.obj.position.z - airplane.obj.position.z)
         if (!turret.hit && airplane.obj.position.z - turret.obj.position.z > 100) {
           fireShot(turret.obj, airplane.obj, turretShots, scene);
         }
@@ -326,7 +324,6 @@ function render() {
     //Atualiza posição dos tiros
     controlAirplaneBullets(airplaneShotSpeed);
     controlTurretBullets(turretShotSpeed);
-    // console.log(airplane.life);
 
     //Animação da torreta se ela foi atingida
     turretAnimation();
@@ -343,12 +340,10 @@ function render() {
 function rotateCamera(){
   if(Math.abs(camera.rotation._z) < 1){
     // If airplane is in the corner left, rotate positive degrees in z
-    if(airplane.obj.position.x < -20){
-      // camera.rotation._z += 0.1;
+    if(airplane.obj.position.x < -width/2+10){
       camera.rotateZ(0.01);
     }
-    else if(airplane.obj.position.x > 20){ // If airplane is in the corner right, rotate negative degrees in z
-      // camera.rotation._z -= 0.1;
+    else if(airplane.obj.position.x > width/2-10){ // If airplane is in the corner right, rotate negative degrees in z
       camera.rotateZ(-0.01);
     }
     else {
@@ -476,7 +471,6 @@ function controlTurretBullets(speed) {
       removeBullet = true;
     } else {
       if (airplane.life > 0 && airplane.box.intersectsBox(bullet.box))
-      // if (airplane.box.intersectsBox(bullet.box)) // JUST for testing
       {
         removeBullet = true;
         airplane.life -= 20;
@@ -535,10 +529,8 @@ function controlAirplane(pointer, camera) {
   raycaster.setFromCamera(pointer, camera);
   // calculate objects intersecting the picking ray
   var intersects = raycaster.intersectObjects(objects_rc, true);
-  // console.log(intersects)
   if (intersects.length > 0) // Check if there is a intersection
   {
-      // console.log(target.position.x, target.position.y)
       let point = intersects[0].point; // Pick the point where interception occurrs
       var targetX = airplane.obj.position.x + (point.x - airplane.obj.position.x) * mouseDelay;
       var targetY = airplane.obj.position.y + (point.y - airplane.obj.position.y) * mouseDelay;
