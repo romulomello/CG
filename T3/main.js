@@ -32,14 +32,27 @@ material = setDefaultMaterial();
 
 let sceneTop = new THREE.Scene();
 
-var textureLoader = new THREE.TextureLoader();
-var metal = textureLoader.load('./textures/light100.png')
-
 initDefaultBasicLight(sceneTop);
 initDirLight(sceneTop);
 light = initDefaultBasicLight(scene);
 light_dir = initDirLight(scene);
 renderer.autoClear = false;
+
+var textureLoader = new THREE.TextureLoader();
+
+let skyboxGeometry = new THREE.BoxGeometry(5000, 5000, 5000);
+let skyboxMaterial = [
+  new THREE.MeshBasicMaterial({map: textureLoader.load('./textures/nebula/skybox_front.png'), side: THREE.BackSide}),
+  new THREE.MeshBasicMaterial({map: textureLoader.load('./textures/nebula/skybox_back.png'), side: THREE.BackSide}),
+  new THREE.MeshBasicMaterial({map: textureLoader.load('./textures/nebula/skybox_up.png'), side: THREE.BackSide}),
+  new THREE.MeshBasicMaterial({map: textureLoader.load('./textures/nebula/skybox_down.png'), side: THREE.BackSide}),
+  new THREE.MeshBasicMaterial({map: textureLoader.load('./textures/nebula/skybox_right.png'), side: THREE.BackSide}),
+  new THREE.MeshBasicMaterial({map: textureLoader.load('./textures/nebula/skybox_left.png'), side: THREE.BackSide})
+];
+let skybox = new THREE.Mesh(skyboxGeometry, skyboxMaterial);
+skybox.rotation.set(0, Math.PI, Math.PI/3);
+
+scene.add(skybox);
 
 var raycaster = new THREE.Raycaster();
 let pointer = new THREE.Vector2();
@@ -66,6 +79,8 @@ const settings = {
 let mouseIsDown = false;
 // let cursorStyle = 'none';
 let cursorStyle = true;
+
+var metal = textureLoader.load('./textures/light100.png')
 
 // create the ground plane
 let planes = [];
@@ -119,7 +134,7 @@ let currentPlaneIndex = 0, currentTurretIndex = 0;
 //Variavel de distância maxima
 let maxDistance = planes.length * length; 
 let initialSpeed = 1.5;
-let airplaneSpeed = initialSpeed;
+let airplaneSpeed = 0;
 let airplaneShotSpeed = 20;
 let turretShotSpeed = 15;
 var mouseDelay = 0.05;
@@ -287,6 +302,7 @@ function render() {
     plane_rc.position.z = airplane.obj.position.z-rc_offset;
     target.position.z = airplane.obj.position.z-rc_offset;
     light_dir.position.z = airplane.obj.position.z;
+    skybox.position.z = airplane.obj.position.z;
     targetLight.position.z = airplane.obj.position.z-10*3;
     light_dir.target = targetLight;
 
