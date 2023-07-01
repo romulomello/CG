@@ -13,7 +13,8 @@ import {
   createGroundPlane,
   setOpacity,
   addWalls,
-  addElements
+  addElements,
+  applyTexture
 } from "./scenary.js";
 
 import { loadOBJFile, loadDAEFile } from './objImports.js';
@@ -28,8 +29,17 @@ renderer = initRenderer();    // Inicia o render
 renderer.shadowMap.type = THREE.PCFShadowMap;
 camera = initCamera(new THREE.Vector3(0, 30, 20)); // Inicia a camera
 material = setDefaultMaterial(); 
+
+let sceneTop = new THREE.Scene();
+
+var textureLoader = new THREE.TextureLoader();
+var metal = textureLoader.load('./textures/light100.png')
+
+initDefaultBasicLight(sceneTop);
+initDirLight(sceneTop);
 light = initDefaultBasicLight(scene);
 light_dir = initDirLight(scene);
+renderer.autoClear = false;
 
 var raycaster = new THREE.Raycaster();
 let pointer = new THREE.Vector2();
@@ -59,16 +69,18 @@ let cursorStyle = true;
 
 // create the ground plane
 let planes = [];
+let color = "rgb(192,192,192)";
 let width = 80, length = 50, height = 30;
 for (let i = 0; i < 50; i++) {
-  let newPlane = createGroundPlane(width, length, 10, 10, "#356927");
-  addWalls(newPlane, width, length, height, "#356927");
-  addElements(newPlane, width, length, height, "#356927");
+  let newPlane = createGroundPlane(width, length, 10, 10, color);
+  addWalls(newPlane, width, length, height, color);
+  addElements(newPlane, width, length, height, color);
   newPlane.translateZ(i * (-length));
   newPlane.rotateX(degreesToRadians(-90));
   newPlane.receiveShadow = true;
   newPlane.material.transparent = false;
   newPlane.material.opacity = 1;
+  applyTexture(metal, newPlane);
   planes.push(newPlane);
   scene.add(newPlane);
 }
@@ -95,11 +107,12 @@ var targetLight = new THREE.Object3D();
 targetLight.position.set(0, 30, 0);
 light_dir.target = targetLight;
 scene.add(targetLight);
+sceneTop.add(targetLight);
 
 // Posicionar a target no plano de fundo
 let target = createTarget(0.01 * rc_offset);
 target.position.set(0, 0, -rc_offset); // Distância do avião ao plano de fundo
-scene.add(target);
+sceneTop.add(target);
 
 //Variavel do indice do plano inicial
 let currentPlaneIndex = 0, currentTurretIndex = 0;
@@ -118,6 +131,7 @@ setupKeyControls();
 
 //Cria o objeto airplane
 let airplane = {obj: null, box: new THREE.Box3(), life: 100};
+let invisibleAirplane = {obj: null, box: new THREE.Box3()};
 
 // Cria o objeto turrets
 let turrets = [
@@ -150,63 +164,81 @@ promise.then(obj => {
     let helper = new THREE.Box3Helper( airplane.box, 0xffff00 );
     scene.add( helper );
   }
-  scene.add(airplane.obj);
+  sceneTop.add(airplane.obj);
   
   //Aponta a camera para o Avião
   camera.lookAt(airplane.obj.position);
+  
+  let invisibleAirplanePromise = loadOBJFile("./Arwing/", "Arwing");
+  invisibleAirplanePromise.then(invisibleAirplaneObj => {
+    //Seta posição do avião
+    invisibleAirplane.obj = invisibleAirplaneObj;
+    invisibleAirplane.obj.traverse( 
+      function( node ) { 
+        if ( node instanceof THREE.Mesh ) { 
+          node.castShadow = true; 
+          node.material.color = new THREE.Color(1, 1, 1);
+        } 
+      } 
+    );
+    invisibleAirplane.obj.name = "invisibleAirplane";
+    invisibleAirplane.obj.position.set(0.0, 20, 0.0);
+    invisibleAirplane.box = invisibleAirplane.box.setFromObject( invisibleAirplane.obj );
+    scene.add(invisibleAirplane.obj);
 
-  let turretPromise1 = loadDAEFile("./Turret/", "turret");
-  turretPromise1.then(obj1 => {
-    //Seta escala, rotação e posição da torreta
-    turrets[0].obj = obj1.scene;
-    turrets[0].obj.traverse( function( node ) { if ( node instanceof THREE.Mesh ) { node.castShadow = true; } } );
-    turrets[0].obj.name = "turret1";
-    turrets[0].obj.scale.set(turretScale, turretScale, turretScale);
-    turrets[0].obj.position.set(20.0, 0.0, -turretDistance);
-    turrets[0].obj.rotation.set(0.0, -0.1, 0.0);
-    turrets[0].box = turrets[0].box.setFromObject( turrets[0].obj );
-    if(settings.showHelper) {
-      let helper = new THREE.Box3Helper( turrets[0].box, 0xffff00 );
-      scene.add( helper );
-    }
-    scene.add(turrets[0].obj);
-
-    let turretPromise2 = loadDAEFile("./Turret/", "turret");
-    turretPromise2.then(obj2 => {
-      turrets[1].obj = obj2.scene;
-      turrets[1].obj.traverse( function( node ) { if ( node instanceof THREE.Mesh ) { node.castShadow = true; } } );
-      turrets[1].obj.name = "turret2";
-      turrets[1].obj.scale.set(turretScale, turretScale, turretScale);
-      turrets[1].obj.position.set(-20.0, 0.0, -2 * turretDistance);
-      turrets[1].obj.rotation.set(0.0, 0.1, 0.0);
-      turrets[1].box = turrets[1].box.setFromObject( turrets[1].obj );
+    let turretPromise1 = loadDAEFile("./Turret/", "turret");
+    turretPromise1.then(obj1 => {
+      //Seta escala, rotação e posição da torreta
+      turrets[0].obj = obj1.scene;
+      turrets[0].obj.traverse( function( node ) { if ( node instanceof THREE.Mesh ) { node.castShadow = true; } } );
+      turrets[0].obj.name = "turret1";
+      turrets[0].obj.scale.set(turretScale, turretScale, turretScale);
+      turrets[0].obj.position.set(20.0, 0.0, -turretDistance);
+      turrets[0].obj.rotation.set(0.0, -0.1, 0.0);
+      turrets[0].box = turrets[0].box.setFromObject( turrets[0].obj );
       if(settings.showHelper) {
-        let helper = new THREE.Box3Helper( turrets[1].box, 0xffff00 );
+        let helper = new THREE.Box3Helper( turrets[0].box, 0xffff00 );
         scene.add( helper );
       }
-      scene.add(turrets[1].obj);
+      scene.add(turrets[0].obj);
 
-      let turretPromise3 = loadDAEFile("Turret/", "turret");
-      turretPromise3.then(obj3 => {
-        turrets[2].obj = obj3.scene;
-        turrets[2].obj.traverse( function( node ) { if ( node instanceof THREE.Mesh ) { node.castShadow = true; } } );
-        turrets[2].obj.name = "turret3";
-        turrets[2].obj.scale.set(turretScale, turretScale, turretScale);
-        turrets[2].obj.position.set(20.0, 0.0, -3 * turretDistance);
-        turrets[2].obj.rotation.set(0.0, -0.1, 0.0);
-        turrets[2].box = turrets[2].box.setFromObject( turrets[2].obj );
+      let turretPromise2 = loadDAEFile("./Turret/", "turret");
+      turretPromise2.then(obj2 => {
+        turrets[1].obj = obj2.scene;
+        turrets[1].obj.traverse( function( node ) { if ( node instanceof THREE.Mesh ) { node.castShadow = true; } } );
+        turrets[1].obj.name = "turret2";
+        turrets[1].obj.scale.set(turretScale, turretScale, turretScale);
+        turrets[1].obj.position.set(-20.0, 0.0, -2 * turretDistance);
+        turrets[1].obj.rotation.set(0.0, 0.1, 0.0);
+        turrets[1].box = turrets[1].box.setFromObject( turrets[1].obj );
         if(settings.showHelper) {
-          let helper = new THREE.Box3Helper( turrets[2].box, 0xffff00 );
+          let helper = new THREE.Box3Helper( turrets[1].box, 0xffff00 );
           scene.add( helper );
         }
-        scene.add(turrets[2].obj);
+        scene.add(turrets[1].obj);
 
-        stopGame = false;
-        render();
+        let turretPromise3 = loadDAEFile("Turret/", "turret");
+        turretPromise3.then(obj3 => {
+          turrets[2].obj = obj3.scene;
+          turrets[2].obj.traverse( function( node ) { if ( node instanceof THREE.Mesh ) { node.castShadow = true; } } );
+          turrets[2].obj.name = "turret3";
+          turrets[2].obj.scale.set(turretScale, turretScale, turretScale);
+          turrets[2].obj.position.set(20.0, 0.0, -3 * turretDistance);
+          turrets[2].obj.rotation.set(0.0, -0.1, 0.0);
+          turrets[2].box = turrets[2].box.setFromObject( turrets[2].obj );
+          if(settings.showHelper) {
+            let helper = new THREE.Box3Helper( turrets[2].box, 0xffff00 );
+            scene.add( helper );
+          }
+          scene.add(turrets[2].obj);
+
+          stopGame = false;
+
+          render();
+        });
+
       });
-
     });
-
   });
 
 });
@@ -225,6 +257,7 @@ let airplaneShotclock = new THREE.Clock();
 let turretShotClock = new THREE.Clock();
 
 function render() {
+  renderer.clear();
   if (!stopGame){
     //Função para controlar o avião
     controlAirplane(pointer, camera);
@@ -244,6 +277,10 @@ function render() {
     updateObjectPosition(airplane.obj, 
       airplane.box,
       new THREE.Vector3(airplane.obj.position.x, airplane.obj.position.y, airplane.obj.position.z-airplaneSpeed), 
+    );
+    updateObjectPosition(invisibleAirplane.obj, 
+      invisibleAirplane.box,
+      new THREE.Vector3(airplane.obj.position.x, airplane.obj.position.y, airplane.obj.position.z), 
     );
 
     //Atualiza luzes, plano do raycaster e target
@@ -283,6 +320,8 @@ function render() {
   }
   requestAnimationFrame(render);
   renderer.render(scene, camera);
+  renderer.clearDepth();
+  renderer.render(sceneTop, camera);
 }
 
 function rotateCamera(){
@@ -517,9 +556,11 @@ function controlAirplane(pointer, camera) {
         
       // Aplicar o quaternion de rotação ao avião
       airplane.obj.quaternion.copy(quaternion);
+      invisibleAirplane.obj.quaternion.copy(quaternion);
       } else {
         // Rotação nula quando não houver mudança de posição
         airplane.obj.rotation.set(0, 0, 0);
+        invisibleAirplane.obj.rotation.set(0, 0, 0);
       }
   }
 }

@@ -133,3 +133,11 @@ export function addElements(plane, width, length, height, gcolor) {
     }
   }
 }
+
+export function applyTexture(texture, plane) {
+  plane.traverse( function( node ) {
+    if ( node instanceof THREE.Mesh ) { 
+      node.material.map = texture;
+    }
+  })
+}
