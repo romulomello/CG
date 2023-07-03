@@ -141,3 +141,18 @@ export function applyTexture(texture, plane) {
     }
   })
 }
+
+export function playAudio(audioFile, camera, volume, detune) {
+  const listener = new THREE.AudioListener();
+  camera.add(listener);
+
+  const audioLoader = new THREE.AudioLoader();
+  
+  audioLoader.load(audioFile, function(buffer) {
+    const sound = new THREE.Audio(listener);
+    sound.setBuffer(buffer);
+    sound.setVolume(volume);
+    sound.detune = detune;
+    sound.play();
+  });
+}

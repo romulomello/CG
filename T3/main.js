@@ -14,7 +14,8 @@ import {
   setOpacity,
   addWalls,
   addElements,
-  applyTexture
+  applyTexture,
+  playAudio
 } from "./scenary.js";
 
 import { loadOBJFile, loadDAEFile } from './objImports.js';
@@ -53,6 +54,9 @@ let skybox = new THREE.Mesh(skyboxGeometry, skyboxMaterial);
 skybox.rotation.set(0, Math.PI, Math.PI/3);
 
 scene.add(skybox);
+
+const shot_ship_path = './sounds/shot_ship.ogg';
+const shot_turret_path = './sounds/turret_shot.ogg';
 
 var raycaster = new THREE.Raycaster();
 let pointer = new THREE.Vector2();
@@ -307,19 +311,25 @@ function render() {
 
     airplaneShotclock.getDelta();
     turretShotClock.getDelta();
-
+    let detune_control = 0;
+    let randomTurret = Math.floor(Math.random() * 2);
     if (turretShotClock.elapsedTime >= 4-airplaneSpeed/3) {
-      turrets.forEach(turret => {
-        if (!turret.hit && airplane.obj.position.z - turret.obj.position.z > 100) {
-          fireShot(turret.obj, airplane.obj, turretShots, scene);
-        }
-      })
+      //turrets.forEach(turret => {
+      if (!turrets[randomTurret].hit && airplane.obj.position.z - turrets[randomTurret].obj.position.z > 100 && turrets.indexOf(randomTurret)) {
+        fireShot(turrets[randomTurret].obj, airplane.obj, turretShots, scene);
+        let distanceTurret = camera.position.distanceTo(turrets[randomTurret].obj.position);
+        console.log(distanceTurret);
+        playAudio(shot_turret_path,camera,distanceTurret/1000,detune_control);
+        detune_control += 1;
+      }
+      //})
       turretShotClock.start();
     }
     
     if (mouseIsDown && airplaneShotclock.elapsedTime >= 0.2) {
       fireShot(airplane.obj, target, airplaneShots, scene);
       airplaneShotclock.start();
+      playAudio(shot_ship_path,camera,0.8,0);
     }
     //Atualiza posição dos tiros
     controlAirplaneBullets(airplaneShotSpeed);
