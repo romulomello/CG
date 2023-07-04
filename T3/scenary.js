@@ -157,6 +157,17 @@ export function playAudio(audioFile, camera, volume, detune,mute_control) {
     if (mute_control==false){
       sound.play();
     }
+    var audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    gainNode = audioContext.createGain();
+    var audio = new THREE.PositionalAudio(listener);
+    audio.setNodeSource(gainNode);
+    gainNode.connect(audioContext.destination);
     
   });
+}
+
+export function setVolume(volume) {
+  if (gainNode) {
+    gainNode.gain.value = volume; // volume should be between 0 and 1
+  }
 }

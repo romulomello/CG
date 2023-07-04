@@ -14,15 +14,54 @@ import {
   setOpacity,
   addWalls,
   addElements,
-  applyTexture,
-  playAudio
+  applyTexture
 } from "./scenary.js";
+
+import { playAudio, setVolume } from './audioUtils.js';
 
 import { loadOBJFile, loadDAEFile } from './objImports.js';
 import { createController, startFPSCounter } from './guiSettings.js';
 import { createTarget, fireShot } from './shotsAndTarget.js';
 
 // TODO: add splash screen, set target on top of ground plane and walls
+
+let audioshot;
+let audioTurretShot;
+let audiobi;
+let audiobi2;
+let audioBG;
+let isMuted = false;
+let previousVolumes = {};
+
+function playSoundBulletImpact() {
+  if (audiobi) {
+    audiobi.play();
+  }
+}
+
+function playSoundBulletImpact2() {
+  if (audiobi2) {
+    audiobi2.play();
+  }
+}
+
+function playSoundShot() {
+  if (audioshot) {
+    audioshot.play();
+  }
+}
+
+function playSoundTurretShot() {
+  if (audioTurretShot) {
+    audioTurretShot.play();
+  }
+}
+
+function playSoundBG() {
+  if (audioBG) {
+    audioBG.play();
+  }
+}
 
 let scene, renderer, camera, material, light, light_dir, orbit; // Inicia as Varaiveis
 scene = new THREE.Scene();    // Cria o cenario
@@ -55,13 +94,7 @@ skybox.rotation.set(0, Math.PI, Math.PI/3);
 
 scene.add(skybox);
 
-const shot_ship_path = './sounds/shot_ship.ogg';
-const shot_turret_path = './sounds/turret_shot.ogg';
-const bullet_impact_path = './sounds/bullet_impact.ogg';
-const bullet_impact2_path = './sounds/bullet_impact2.ogg';
-const starfox_theme_path = './sounds/starfox_alltheme.ogg';
 let mute = false;
-playAudio(starfox_theme_path,camera,0.05,1,mute);
 
 var raycaster = new THREE.Raycaster();
 let pointer = new THREE.Vector2();
@@ -193,6 +226,32 @@ promise.then(obj => {
   //Aponta a camera para o Avião
   camera.lookAt(airplane.obj.position);
   
+  //Audios
+  async function start() {
+    const shot_ship_path = './sounds/shot_ship.ogg';
+    const shot_turret_path = './sounds/turret_shot.ogg';
+    const bullet_impact_path = './sounds/bullet_impact.ogg';
+    const bullet_impact2_path = './sounds/bullet_impact2.ogg';
+    const starfox_theme_path = './sounds/starfox_alltheme.ogg';
+  
+    const promises = [
+    playAudio(shot_ship_path, camera, 0.5),
+    playAudio(shot_turret_path, camera, 0.5),
+    playAudio(bullet_impact_path, camera, 0.7),
+    playAudio(bullet_impact2_path, camera, 0.7),
+    playAudio(starfox_theme_path, camera, 0.1)];
+  
+    const [loadedAudio1, loadedAudio2, loadedAudio3, loadedAudio4, loadedAudio5] = await Promise.all(promises);
+    audioshot = loadedAudio1;
+    audioTurretShot = loadedAudio2;
+    audiobi = loadedAudio3;
+    audiobi2 = loadedAudio4;
+    audioBG = loadedAudio5;
+    playSoundBG();
+  }
+
+  start();
+
   let invisibleAirplanePromise = loadOBJFile("./Arwing/", "Arwing");
   invisibleAirplanePromise.then(invisibleAirplaneObj => {
     //Seta posição do avião
@@ -292,6 +351,7 @@ function render() {
     //Atualiza posição das torretas
     updateTurretPosition();
 
+
     for (let i = 0; i < planes.length; i++) {
       let distance = camera.position.distanceTo(planes[i].position);
       updateOpacity(planes[i], distance);
@@ -323,8 +383,12 @@ function render() {
       if (!turrets[randomTurret].hit && airplane.obj.position.z - turrets[randomTurret].obj.position.z > 100 && turrets.indexOf(randomTurret)) {
         fireShot(turrets[randomTurret].obj, airplane.obj, turretShots, scene);
         let distanceTurret = camera.position.distanceTo(turrets[randomTurret].obj.position);
-        console.log(distanceTurret);
-        playAudio(shot_turret_path,camera,distanceTurret/1000,detune_control,mute);
+        const normalizedDistance = Math.min(distanceTurret / 1500, 1);
+        const volume = 0.8 * (1 - normalizedDistance);
+        if (!isMuted) {
+          setVolume(audioTurretShot, volume);
+        }
+        playSoundTurretShot();
         detune_control += 1;
       }
       //})
@@ -334,7 +398,7 @@ function render() {
     if (mouseIsDown && airplaneShotclock.elapsedTime >= 0.2) {
       fireShot(airplane.obj, target, airplaneShots, scene);
       airplaneShotclock.start();
-      playAudio(shot_ship_path,camera,0.8,0,mute);
+      playSoundShot();
     }
     //Atualiza posição dos tiros
     controlAirplaneBullets(airplaneShotSpeed);
@@ -473,13 +537,8 @@ function setupKeyControls() {
       stopGame = true;
       gameCanvas.style.cursor = '';
       break;
-      case "m":
-      if (mute == true) {
-        mute = false;
-      }
-      else {
-        mute = true;
-      }
+      case "s":
+      muteAll()
   }
   };
 }
@@ -497,7 +556,7 @@ function controlTurretBullets(speed) {
         removeBullet = true;
         airplane.life -= 20;
         updateAirplaneColor(airplane);
-        playAudio(bullet_impact_path,camera,0.7,0,mute);
+        playSoundBulletImpact();
       }
     }
     if (removeBullet) {
@@ -530,7 +589,12 @@ function controlAirplaneBullets(speed) {
           removeBullet = true;
           turret.hit = true;
           let distanceTurret = camera.position.distanceTo(turret.obj.position);
-          playAudio(bullet_impact2_path,camera,distanceTurret/1000,0,mute);
+          const normalizedDistance = Math.min(distanceTurret / 2000, 1);
+          const volume = 0.4 * (1 - normalizedDistance);
+          if (!isMuted) {
+            setVolume(audiobi2, volume);
+          }
+          playSoundBulletImpact2();
         }
       });
     }
@@ -623,4 +687,29 @@ function onMouseUp(event)
 {
   event.preventDefault();
   mouseIsDown = false;
+}
+
+function muteAll() {
+  if (isMuted) {
+    // Unmute and restore previous volumes
+    setVolume(audiobi, previousVolumes.audiobi);
+    setVolume(audiobi2, previousVolumes.audiobi2);
+    setVolume(audioBG, previousVolumes.audioBG);
+    setVolume(audioshot, previousVolumes.audioshot);
+    setVolume(audioTurretShot, previousVolumes.audioTurretShot);
+    isMuted = false;
+  } else {
+    // Mute and save current volumes
+    previousVolumes.audiobi = audiobi.getVolume();
+    previousVolumes.audiobi2 = audiobi2.getVolume();
+    previousVolumes.audioBG = audioBG.getVolume();
+    previousVolumes.audioshot = audioshot.getVolume();
+    previousVolumes.audioTurretShot = audioTurretShot.getVolume();
+    setVolume(audiobi, 0);
+    setVolume(audiobi2, 0);
+    setVolume(audioBG, 0);
+    setVolume(audioshot, 0);
+    setVolume(audioTurretShot, 0);
+    isMuted = true;
+  }
 }
