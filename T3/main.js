@@ -89,8 +89,8 @@ var metal = textureLoader.load('./textures/trench.png')
 // create the ground plane
 let planes = [];
 let color = "rgb(192,192,192)";
-let width = 80, length = 50, height = 30;
-for (let i = 0; i < 50; i++) {
+let width = 80, length = 100, height = 30;
+for (let i = 0; i < 25; i++) {
   let newPlane = createGroundPlane(width, length, 10, 10, color);
   addWalls(newPlane, width, length, height, color);
   addElements(newPlane, width, length, height, color);
@@ -273,7 +273,7 @@ if(settings.showFPS){
 }
 
 let airplaneShotclock = new THREE.Clock();
-let turretShotClock = new THREE.Clock();
+let turretShotClocks = [new THREE.Clock(), new THREE.Clock(), new THREE.Clock()];
 
 function render() {
   renderer.clear();
@@ -310,22 +310,17 @@ function render() {
     light_dir.target = targetLight;
 
     airplaneShotclock.getDelta();
-    turretShotClock.getDelta();
-    let detune_control = 0;
-    let randomTurret = Math.floor(Math.random() * 2);
-    if (turretShotClock.elapsedTime >= 4-airplaneSpeed/3) {
-      //turrets.forEach(turret => {
-      if (!turrets[randomTurret].hit && airplane.obj.position.z - turrets[randomTurret].obj.position.z > 100 && turrets.indexOf(randomTurret)) {
-        fireShot(turrets[randomTurret].obj, airplane.obj, turretShots, scene);
-        let distanceTurret = camera.position.distanceTo(turrets[randomTurret].obj.position);
-        console.log(distanceTurret);
-        playAudio(shot_turret_path,camera,distanceTurret/1000,detune_control);
-        detune_control += 1;
+
+    for (let i = 0; i < turrets.length; i++) {
+      turretShotClocks[i].getDelta();
+      if (turretShotClocks[i].elapsedTime >= 4.5-airplaneSpeed/3-i*0.1 && !turrets[i].hit && airplane.obj.position.z - turrets[i].obj.position.z > 100) {
+        fireShot(turrets[i].obj, airplane.obj, turretShots, scene);
+        let distanceTurret = camera.position.distanceTo(turrets[i].obj.position);
+        playAudio(shot_turret_path,camera,distanceTurret/1000,0);
+        turretShotClocks[i].start();
       }
-      //})
-      turretShotClock.start();
     }
-    
+
     if (mouseIsDown && airplaneShotclock.elapsedTime >= 0.2) {
       fireShot(airplane.obj, target, airplaneShots, scene);
       airplaneShotclock.start();
@@ -402,12 +397,12 @@ function updateAirplaneColor(airplane) {
       let color = new THREE.Color(1, airplane.life/100, airplane.life/100);
       child.material.color = color;
     }
-});
+  });
 }
 
 function updateOpacity(object, distance) {
   let opacity;
-  let maxVision = 0.75;
+  let maxVision = 0.6;
   if (distance < maxDistance * maxVision) {
     opacity = 1;
     object.material.transparent = false;
