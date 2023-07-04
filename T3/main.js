@@ -57,6 +57,11 @@ scene.add(skybox);
 
 const shot_ship_path = './sounds/shot_ship.ogg';
 const shot_turret_path = './sounds/turret_shot.ogg';
+const bullet_impact_path = './sounds/bullet_impact.ogg';
+const bullet_impact2_path = './sounds/bullet_impact2.ogg';
+const starfox_theme_path = './sounds/starfox_alltheme.ogg';
+let mute = false;
+playAudio(starfox_theme_path,camera,0.05,1,mute);
 
 var raycaster = new THREE.Raycaster();
 let pointer = new THREE.Vector2();
@@ -316,7 +321,7 @@ function render() {
       if (turretShotClocks[i].elapsedTime >= 4.5-airplaneSpeed/3-i*0.1 && !turrets[i].hit && airplane.obj.position.z - turrets[i].obj.position.z > 100) {
         fireShot(turrets[i].obj, airplane.obj, turretShots, scene);
         let distanceTurret = camera.position.distanceTo(turrets[i].obj.position);
-        playAudio(shot_turret_path,camera,distanceTurret/1000,0);
+        playAudio(shot_turret_path,camera,distanceTurret/1000,0,mute);
         turretShotClocks[i].start();
       }
     }
@@ -324,7 +329,7 @@ function render() {
     if (mouseIsDown && airplaneShotclock.elapsedTime >= 0.2) {
       fireShot(airplane.obj, target, airplaneShots, scene);
       airplaneShotclock.start();
-      playAudio(shot_ship_path,camera,0.8,0);
+      playAudio(shot_ship_path,camera,0.8,0,mute);
     }
     //Atualiza posição dos tiros
     controlAirplaneBullets(airplaneShotSpeed);
@@ -463,6 +468,9 @@ function setupKeyControls() {
       stopGame = true;
       gameCanvas.style.cursor = '';
       break;
+      case "s":
+      mute = !mute;
+      break;
   }
   };
 }
@@ -480,6 +488,7 @@ function controlTurretBullets(speed) {
         removeBullet = true;
         airplane.life -= 20;
         updateAirplaneColor(airplane);
+        playAudio(bullet_impact_path,camera,0.7,0,mute);
       }
     }
     if (removeBullet) {
@@ -511,6 +520,8 @@ function controlAirplaneBullets(speed) {
           turret.blinkStartTime = Date.now();
           removeBullet = true;
           turret.hit = true;
+          let distanceTurret = camera.position.distanceTo(turret.obj.position);
+          playAudio(bullet_impact2_path,camera,distanceTurret/1000,0,mute);
         }
       });
     }

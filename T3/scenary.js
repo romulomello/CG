@@ -186,7 +186,7 @@ export function applyTexture(texture, plane) {
   })
 }
 
-export function playAudio(audioFile, camera, volume, detune) {
+export function playAudio(audioFile, camera, volume, detune, mute_control) {
   const listener = new THREE.AudioListener();
   camera.add(listener);
 
@@ -195,8 +195,12 @@ export function playAudio(audioFile, camera, volume, detune) {
   audioLoader.load(audioFile, function(buffer) {
     const sound = new THREE.Audio(listener);
     sound.setBuffer(buffer);
+    sound.setVolume(0)
     sound.setVolume(volume);
     sound.detune = detune;
-    sound.play();
+    if (!mute_control){
+      sound.play();
+    }
+    
   });
 }
