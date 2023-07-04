@@ -57,16 +57,25 @@ function setElementPosition(element, wall, width, length, height) {
 function setElementPositionTop(element, wall, width, length, height) {
   const random_x = Math.random() * width;
   const random_y = Math.random() * length;
-  const top_x = wall.position.x / Math.abs(wall.position.x) * (width/2 - random_x);
-  const top_y = random_y;
-  const top_z = height/2;
-  element.position.set(top_x, top_y, top_z);
+  const x = wall.position.x / Math.abs(wall.position.x) * (width/2 - random_x);
+  const y = random_y;
+  const z = height/2;
+  element.position.set(x, y, z);
+}
+
+function setElementPositionFloor(element, width, length) {
+  const random_x = Math.random() * width - width/2;
+  const random_y = Math.random() * length;
+  const x = random_x;
+  const y = random_y;
+  const z = 0;
+  element.position.set(x, y, z);
 }
 
 export function addElements(plane, width, length, height, gcolor) {
+  const material = new THREE.MeshLambertMaterial({ color: gcolor, side: THREE.DoubleSide, transparent: true });
   for (let i = 0; i < plane.children.length; i++) {
     const wall = plane.children[i];
-    const material = new THREE.MeshLambertMaterial({ color: gcolor, side: THREE.DoubleSide, transparent: true });
     for (let j = 0; j < 4; j++) {
       const k = Math.random();
       if (k < 0.5) {
@@ -96,10 +105,10 @@ export function addElements(plane, width, length, height, gcolor) {
         setElementPosition(sphere, wall, width, length, height);
         wall.add(sphere);
 
-        const topRadius = 1.5 + Math.random();
+        const radiusTop = 1.5 + Math.random();
         const scaleTopXFactor = 1 + Math.random();
         const scaleTopYFactor = 1 + Math.random();
-        const sphereTopGeometry = new THREE.SphereGeometry(topRadius, 32, 16);
+        const sphereTopGeometry = new THREE.SphereGeometry(radiusTop, 32, 16);
         sphereTopGeometry.scale(scaleTopXFactor, scaleTopYFactor, 1);
         const sphereTop = new THREE.Mesh(sphereTopGeometry, material);
         setElementPositionTop(sphereTop, wall, width, length, height);
@@ -132,6 +141,41 @@ export function addElements(plane, width, length, height, gcolor) {
       }
     }
   }
+  for (let j = 0; j < 2; j++) {
+    const k = Math.random();
+    if (k < 0.5) {
+      const cubeFloorWidth = 2 + Math.random() * 3;
+      const cubeFloorLength = 2 + Math.random() * 3;
+      const cubeFloorHeight = 2 + Math.random() * 3;
+      const cubeFloorGeometry = new THREE.BoxGeometry(cubeFloorWidth, cubeFloorLength, cubeFloorHeight);
+      const cubeFloor = new THREE.Mesh(cubeFloorGeometry, material);
+      setElementPositionFloor(cubeFloor, width, length);
+      plane.add(cubeFloor);
+    }
+    else if (k < 0.75) {
+      const radiusFloor = 1.5 + Math.random();
+      const scaleFloorXFactor = 1 + Math.random();
+      const scaleFloorYFactor = 1 + Math.random();
+      const sphereFloorGeometry = new THREE.SphereGeometry(radiusFloor, 32, 16);
+      sphereFloorGeometry.scale(scaleFloorXFactor, scaleFloorYFactor, 1);
+      const sphereFloor = new THREE.Mesh(sphereFloorGeometry, material);
+      setElementPositionFloor(sphereFloor, width, length);
+      plane.add(sphereFloor);
+    }
+    else {
+      const radiusFloor = 1 + Math.random();
+      const cylinderFloorHeight = 2 + Math.random() * 3;
+      let rotateCylinderFloor = 0;
+      if (Math.random() < 0.5) {
+        rotateCylinderFloor = Math.PI/2;
+      }
+      const cylinderFloorGeometry = new THREE.CylinderGeometry(radiusFloor, radiusFloor, cylinderFloorHeight);
+      cylinderFloorGeometry.rotateZ(rotateCylinderFloor);
+      const cylinderFloor = new THREE.Mesh(cylinderFloorGeometry, material);
+      setElementPositionFloor(cylinderFloor, width, length);
+      plane.add(cylinderFloor);
+    }
+  }
 }
 
 export function applyTexture(texture, plane) {
@@ -142,7 +186,7 @@ export function applyTexture(texture, plane) {
   })
 }
 
-export function playAudio(audioFile, camera, volume, detune,mute_control) {
+export function playAudio(audioFile, camera, volume, detune, mute_control) {
   const listener = new THREE.AudioListener();
   camera.add(listener);
 
@@ -154,7 +198,7 @@ export function playAudio(audioFile, camera, volume, detune,mute_control) {
     sound.setVolume(0)
     sound.setVolume(volume);
     sound.detune = detune;
-    if (mute_control==false){
+    if (!mute_control){
       sound.play();
     }
     var audioContext = new (window.AudioContext || window.webkitAudioContext)();
