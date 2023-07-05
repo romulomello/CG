@@ -1,11 +1,11 @@
 import * as THREE from 'three';
-import GUI from '/libs/util/dat.gui.module.js'
+import GUI from '../libs/util/dat.gui.module.js'
 import { OrbitControls } from './OrbitControls.js';
 import {initRenderer, 
         setDefaultMaterial,
         onWindowResize,
         degreesToRadians
-} from "/libs/util/util.js";
+} from "../libs/util/util.js";
 
 import {initDefaultBasicLight, initDirLight, initCamera } from "./light.js";
 
