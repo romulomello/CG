@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <title>Main</title>
+      <link rel="shortcut icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../html/resources/default.css">
+      <meta name="viewport" content="width=device-width, initial-scale=1">  
+      <style>
+         #controls {
+            position: absolute;
+            bottom: 0px;
+            right: 0px;
+         }
+
+         .control-button {
+            border-radius: 50%;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            opacity: 0.7;
+            border: none;
+            margin: 0px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+         }
+
+         #shootButton {
+            position: relative;
+            bottom: -50px;
+            right: 200px;
+            width: 200px;
+            height: 200px;
+         }
+
+         #muteButton {
+            position: relative;
+            bottom: -60px;
+            right: -40px;
+            width: 100px;
+            height: 100px;
+         }
+
+         #fullscreenButton {
+            position: relative;
+            bottom: 600px;
+            right: -20px;
+            width: 100px;
+            height: 100px;
+         }
+
+         #joystickWrapper1 {
+            position: relative;
+            bottom: -100px;
+            left: -1450px;
+         }
+         
+      </style>
+
+   </head>
+
+   <body>
+      <!-- Import maps polyfill -- Remove this when import maps will be widely supported-->
+      
+      <script type="importmap"> 
+         {"imports": {"three": "../build/three.module.js"}} 
+      </script>  
+      <script type="module" src="nipplejs.min.js"></script>
+      <div id="webgl-output">
+         <script type="module" src="appMobile.js"></script>
+         
+      </div>
+
+      <div id="controls">
+         <div id="joystickWrapper1"></div>
+         <button id="shootButton" class="control-button">Atirar</button>
+         <button id="muteButton" class="control-button">Mutar</button>
+         <button id="fullscreenButton" class="control-button">Tela Cheia</button>
+         
+      </div>
+      
+      <div id="fps-counter"></div>
+   </body>
+</html>
