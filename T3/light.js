@@ -1,4 +1,4 @@
-import * as THREE from 'build/three.module.js';
+import * as THREE from '../build/three.module.js';
 
 export function initDefaultBasicLight(scene, castShadow = false, position = new THREE.Vector3(2, 1, 1),
    shadowSide = 16, shadowMapSize = 512, shadowNear = 0.1, shadowFar = 100) {

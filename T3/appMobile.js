@@ -27,10 +27,6 @@ var btnFire = document.getElementById('shootButton');
 var btnMute = document.getElementById('muteButton');
 var fullscreenButton = document.getElementById('fullscreenButton');
 
-let fwdValue = 0;
-let bkdValue = 0;
-let rgtValue = 0;
-let lftValue = 0;
 let joyManager;
 let pointer_joystick = { x: 0, y: 0 };
 
