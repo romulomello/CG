@@ -380,14 +380,14 @@ function render() {
       turretShotClocks[i].getDelta();
       if (turretShotClocks[i].elapsedTime >= 4.5-airplaneSpeed/3-i*0.1 && !turrets[i].hit && airplane.obj.position.z - turrets[i].obj.position.z > 100) {
         fireShot(turrets[i].obj, airplane.obj, turretShots, scene);
-        let distanceTurret = camera.position.distanceTo(turrets[randomTurret].obj.position);
+        let distanceTurret = camera.position.distanceTo(turrets[i].obj.position);
         const normalizedDistance = Math.min(distanceTurret / 1500, 1);
         const volume = 0.8 * (1 - normalizedDistance);
         if (!isMuted) {
           setVolume(audioTurretShot, volume);
         }
         playSoundTurretShot();
-        detune_control += 1;
+        //detune_control += 1;
         turretShotClocks[i].start();
       }
     }
