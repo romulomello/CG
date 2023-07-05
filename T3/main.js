@@ -52,7 +52,7 @@ function playSoundShot() {
 }
 
 function playSoundTurretShot() {
-  if (audioTurretShot) {
+  if (audioTurretShot && !audioTurretShot.isPlaying) {
     audioTurretShot.play();
   }
 }
@@ -535,7 +535,7 @@ function setupKeyControls() {
       gameCanvas.style.cursor = '';
       break;
       case "s":
-      muteAll()
+      muteControl();
   }
   };
 }
@@ -686,7 +686,7 @@ function onMouseUp(event)
   mouseIsDown = false;
 }
 
-function muteAll() {
+function muteControl() {
   if (isMuted) {
     // Unmute and restore previous volumes
     setVolume(audiobi, previousVolumes.audiobi);

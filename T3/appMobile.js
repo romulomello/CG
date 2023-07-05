@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import GUI from '../libs/util/dat.gui.module.js'
 import { OrbitControls } from './OrbitControls.js';
 import {initRenderer, 
         setDefaultMaterial,
@@ -20,15 +19,14 @@ import {
 import { playAudio, setVolume } from './audioUtils.js';
 
 import { loadOBJFile, loadDAEFile } from './objImports.js';
-import { createController, startFPSCounter } from './guiSettings.js';
 import { createTarget, fireShot } from './shotsAndTarget.js';
 
+var joystickContainer = document.getElementById('joystickWrapper1');
 var btnFire = document.getElementById('shootButton');
 var btnMute = document.getElementById('muteButton');
 var fullscreenButton = document.getElementById('fullscreenButton');
 
 let joyManager;
-let pointer_joystick = { x: 0, y: 0 };
 
 let audioshot;
 let audioTurretShot;
@@ -57,7 +55,7 @@ function playSoundShot() {
 }
 
 function playSoundTurretShot() {
-  if (audioTurretShot) {
+  if (audioTurretShot && !audioTurretShot.isPlaying) {
     audioTurretShot.play();
   }
 }
@@ -99,8 +97,6 @@ skybox.rotation.set(0, Math.PI, Math.PI/3);
 
 scene.add(skybox);
 
-let mute = false;
-
 var raycaster = new THREE.Raycaster();
 let pointer = new THREE.Vector2();
 
@@ -108,9 +104,9 @@ orbit = new OrbitControls( camera, renderer.domElement ); // Habilita o mouse
 window.addEventListener('resize', function () { onWindowResize(camera, renderer) }, false);
 
 //mouse to joystick
-window.addEventListener('touchstart', onTouchStart, false);
-window.addEventListener('touchmove', onTouchMove, false);
-window.addEventListener('touchend', onTouchEnd, false);
+// joystickContainer.addEventListener('touchstart', onTouchStart, false);
+joystickContainer.addEventListener('touchmove', onTouchMove, false);
+// joystickContainer.addEventListener('touchend', onTouchEnd, false);
 
 let axesHelper = new THREE.AxesHelper( 12 );
 scene.add( axesHelper );
@@ -125,9 +121,9 @@ const settings = {
   sensY: 0.5,
 };
 
-let mouseIsDown = false;
-let cursorStyle = 'none';
-// let cursorStyle = true;
+let touchIsDown = false;
+// let cursorStyle = 'none';
+let cursorStyle = true;
 
 var metal = textureLoader.load('./textures/trench.png')
 
@@ -189,9 +185,9 @@ let turretShotSpeed = 15;
 var mouseDelay = 0.05;
 let stopGame = true;
 
-const gui = new GUI();
-createController(gui, document, settings);
-setupKeyControls();
+// const gui = new GUI();
+// createController(gui, document, settings);
+// setupKeyControls();
 
 //Cria o objeto airplane
 let airplane = {obj: null, box: new THREE.Box3(), life: 100};
@@ -339,9 +335,9 @@ var gameCanvas = document.getElementById('webgl-output');
 gameCanvas.style.cursor = cursorStyle;
 light_dir.target.position.set(0,15,0);
 
-if(settings.showFPS){
-  startFPSCounter();
-}
+// if(settings.showFPS){
+//   startFPSCounter();
+// }
 
 let airplaneShotclock = new THREE.Clock();
 let turretShotClocks = [new THREE.Clock(), new THREE.Clock(), new THREE.Clock()];
@@ -351,7 +347,7 @@ function render() {
   renderer.clear();
   if (!stopGame){
     //Função para controlar o avião
-    controlAirplane(pointer_joystick, camera);
+    controlAirplane(pointer, camera);
     //Função para atualização da camera
     updateCamera();
     //Atualiza posição do plano atual
@@ -398,7 +394,7 @@ function render() {
       }
     }
 
-    if (mouseIsDown && airplaneShotclock.elapsedTime >= 0.2) {
+    if (touchIsDown && airplaneShotclock.elapsedTime >= 0.2) {
       fireShot(airplane.obj, target, airplaneShots, scene);
       airplaneShotclock.start();
       playSoundShot();
@@ -541,7 +537,7 @@ function setupKeyControls() {
       gameCanvas.style.cursor = '';
       break;
       case "s":
-      muteAll()
+      muteControl();
   }
   };
 }
@@ -658,34 +654,26 @@ function controlAirplane(point, camera) {
   }
 }
 
-function onMouseMove(event) 
+function onTouchMove(event) 
 {
   event.preventDefault();
-  if (!stopGame) {
-    pointer.x =  (event.clientX / window.innerWidth) * 2 - 1;
-    pointer.y = -(event.clientY / window.innerHeight) * 2 + 1.1;
-  }
+  pointer.x =  (event.clientX / window.innerWidth) * 2 - 1;
+  pointer.y = -(event.clientY / window.innerHeight) * 2 + 1.1;
 }
 
-function onMouseDown(event)
-{
-  event.preventDefault();
-  if (stopGame){
-    // Resume the simulation if it was paused
-    stopGame = false;
-    gameCanvas.style.cursor = cursorStyle;
-  } else {
-    mouseIsDown = true;
-  }
-}
+// function onTouchStart(event)
+// {
+//   event.preventDefault();
+//   // touchIsDown = true;
+// }
 
-function onMouseUp(event)
-{
-  event.preventDefault();
-  mouseIsDown = false;
-}
+// function onTouchEnd(event)
+// {
+//   event.preventDefault();
+//   // touchIsDown = false;
+// }
 
-function muteAll() {
+function muteControl() {
   if (isMuted) {
     // Unmute and restore previous volumes
     setVolume(audiobi, previousVolumes.audiobi);
@@ -710,22 +698,22 @@ function muteAll() {
   }
 }
 
-function onTouchStart(event) {
-  event.preventDefault();
-  const touch = event.touches[0];
-  handleJoystickStart(touch.clientX, touch.clientY);
-}
+// function onTouchStart(event) {
+//   event.preventDefault();
+//   const touch = event.touches[0];
+//   handleJoystickStart(touch.clientX, touch.clientY);
+// }
 
-function onTouchMove(event) {
-  event.preventDefault();
-  const touch = event.touches[0];
-  handleJoystickMove(touch.clientX, touch.clientY);
-}
+// function onTouchMove(event) {
+//   event.preventDefault();
+//   const touch = event.touches[0];
+//   handleJoystickMove(touch.clientX, touch.clientY);
+// }
 
-function onTouchEnd(event) {
-  event.preventDefault();
-  handleJoystickEnd();
-}
+// function onTouchEnd(event) {
+//   event.preventDefault();
+//   handleJoystickEnd();
+// }
 
 function handleJoystickStart(clientX, clientY) {
   // Lógica de início do controle do joystick na tela
@@ -739,26 +727,20 @@ function handleJoystickEnd() {
   // Lógica de término do controle do joystick na tela
 }
 
-btnFire.addEventListener('mousedown', function() {
-  if (stopGame){
-    // Resume the simulation if it was paused
-    stopGame = false;
-    gameCanvas.style.cursor = cursorStyle;
-  } else {
-    mouseIsDown = true;
-  }
+btnFire.addEventListener('touchstart', function() {
+  touchIsDown = true;
 });
 
-btnFire.addEventListener('mouseup', function() {
-  mouseIsDown = false;
+btnFire.addEventListener('touchend', function() {
+  touchIsDown = false;
 });
 
-btnMute.addEventListener('click', function() {
-  muteAll();
+btnMute.addEventListener('touchstart', function() {
+  muteControl();
 });
 
 
-fullscreenButton.addEventListener('click', function() {
+fullscreenButton.addEventListener('touchstart', function() {
   if (document.fullscreenElement) {
      // Sair do modo de tela cheia
      if (document.exitFullscreen) {
@@ -785,7 +767,6 @@ fullscreenButton.addEventListener('click', function() {
 });
 
 function addJoystick() {
-  const joystickContainer = document.getElementById('joystickWrapper1');
   const options = {
     zone: document.getElementById("joystickWrapper1"),
     size: 200,
@@ -801,7 +782,7 @@ function addJoystick() {
   joyManager = nipplejs.create(options);
 
   joyManager["0"].on("move", function (evt, data) {
-    pointer_joystick = data.vector;
+    pointer = data.vector;
   });
 
 }
