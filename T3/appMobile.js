@@ -362,8 +362,6 @@ function render() {
     updatePlanePosition();
     //Atualiza posição das torretas
     updateTurretPosition();
-    console.log(pointer_joystick.x);
-    console.log(pointer_joystick.y);
 
     for (let i = 0; i < planes.length; i++) {
       let distance = camera.position.distanceTo(planes[i].position);
