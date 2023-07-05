@@ -16,7 +16,7 @@ import {
   applyTexture
 } from "./scenary.js";
 
-import { playAudio, setVolume } from './audioUtils.js';
+import { startAudio, startMusic, setVolume, playSound } from './audioUtils.js';
 
 import { loadOBJFile, loadDAEFile } from './objImports.js';
 import { createTarget, fireShot } from './shotsAndTarget.js';
@@ -35,36 +35,6 @@ let audiobi2;
 let audioBG;
 let isMuted = false;
 let previousVolumes = {};
-
-function playSoundBulletImpact() {
-  if (audiobi) {
-    audiobi.play();
-  }
-}
-
-function playSoundBulletImpact2() {
-  if (audiobi2) {
-    audiobi2.play();
-  }
-}
-
-function playSoundShot() {
-  if (audioshot) {
-    audioshot.play();
-  }
-}
-
-function playSoundTurretShot() {
-  if (audioTurretShot && !audioTurretShot.isPlaying) {
-    audioTurretShot.play();
-  }
-}
-
-function playSoundBG() {
-  if (audioBG) {
-    audioBG.play();
-  }
-}
 
 let scene, renderer, camera, material, light, light_dir, orbit; // Inicia as Varaiveis
 scene = new THREE.Scene();    // Cria o cenario
@@ -238,11 +208,11 @@ promise.then(obj => {
     const starfox_theme_path = './sounds/starfox_alltheme.ogg';
   
     const promises = [
-    playAudio(shot_ship_path, camera, 0.5),
-    playAudio(shot_turret_path, camera, 0.5),
-    playAudio(bullet_impact_path, camera, 0.7),
-    playAudio(bullet_impact2_path, camera, 0.7),
-    playAudio(starfox_theme_path, camera, 0)];
+    startAudio(shot_ship_path, camera, 0.5),
+    startAudio(shot_turret_path, camera, 0.5),
+    startAudio(bullet_impact_path, camera, 0.7),
+    startAudio(bullet_impact2_path, camera, 0.7),
+    startMusic(starfox_theme_path, camera, 0.1)];
   
     const [loadedAudio1, loadedAudio2, loadedAudio3, loadedAudio4, loadedAudio5] = await Promise.all(promises);
     audioshot = loadedAudio1;
@@ -250,7 +220,7 @@ promise.then(obj => {
     audiobi = loadedAudio3;
     audiobi2 = loadedAudio4;
     audioBG = loadedAudio5;
-    playSoundBG();
+    playSound(audioBG);
   }
 
   start();
@@ -389,7 +359,7 @@ function render() {
         if (!isMuted) {
           setVolume(audioTurretShot, volume);
         }
-        playSoundTurretShot();
+        playSound(audioTurretShot);
         turretShotClocks[i].start();
       }
     }
@@ -397,7 +367,7 @@ function render() {
     if (touchIsDown && airplaneShotclock.elapsedTime >= 0.2) {
       fireShot(airplane.obj, target, airplaneShots, scene);
       airplaneShotclock.start();
-      playSoundShot();
+      playSound(audioshot);
     }
     //Atualiza posição dos tiros
     controlAirplaneBullets(airplaneShotSpeed);
@@ -517,31 +487,6 @@ function updateTurretPosition() {
   }
 }
 
-function setupKeyControls() {
-  document.onkeydown = function(e) {
-    switch (e.key) {
-      case "0":
-      airplaneSpeed = 0;
-      break;
-      case "1":
-      airplaneSpeed = initialSpeed;
-      break;
-      case "2":
-      airplaneSpeed = 2 * initialSpeed;
-      break;
-      case "3":
-      airplaneSpeed = 3 * initialSpeed;
-      break;
-      case "Escape":
-      stopGame = true;
-      gameCanvas.style.cursor = '';
-      break;
-      case "s":
-      muteControl();
-  }
-  };
-}
-
 function controlTurretBullets(speed) {
   turretShots.forEach(bullet => {
     var removeBullet = false;
@@ -550,12 +495,14 @@ function controlTurretBullets(speed) {
     if (bullet.obj.position.z > camera.position.x || bullet.obj.position.y < 0) { 
       removeBullet = true;
     } else {
-      if (airplane.life > 0 && airplane.box.intersectsBox(bullet.box))
+      if (airplane.box.intersectsBox(bullet.box))
       {
+        if (airplane.life > 0) {
+          airplane.life -= 20;
+          updateAirplaneColor(airplane);
+        }
         removeBullet = true;
-        airplane.life -= 20;
-        updateAirplaneColor(airplane);
-        playSoundBulletImpact();
+        playSound(audiobi);
       }
     }
     if (removeBullet) {
@@ -593,7 +540,7 @@ function controlAirplaneBullets(speed) {
           if (!isMuted) {
             setVolume(audiobi2, volume);
           }
-          playSoundBulletImpact2();
+          playSound(audiobi2);
         }
       });
     }
