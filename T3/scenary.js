@@ -76,7 +76,7 @@ export function addElements(plane, width, length, height, gcolor) {
   const material = new THREE.MeshLambertMaterial({ color: gcolor, side: THREE.DoubleSide, transparent: true });
   for (let i = 0; i < plane.children.length; i++) {
     const wall = plane.children[i];
-    for (let j = 0; j < 4; j++) {
+    for (let j = 0; j < 3; j++) {
       const k = Math.random();
       if (k < 0.5) {
         const cubeWidth = 2 + Math.random() * 3;

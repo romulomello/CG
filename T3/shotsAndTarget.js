@@ -35,7 +35,7 @@ export function createTarget(targetSize) {
     return target;
 }
 
-export function fireShot(source, target, shots, scene) {
+export function fireShot(source, target, shots, scene, offset = 0) {
     let bulletGeometry = new THREE.CylinderGeometry(0.1, 0.1, 20, 4);
     let bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff }); 
     let bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
@@ -43,6 +43,8 @@ export function fireShot(source, target, shots, scene) {
     bullet.position.copy(position);
   
     let targetPosition = target.getWorldPosition(new THREE.Vector3());
+    targetPosition.z -= offset;
+
     let dir = new THREE.Vector3();
     dir.subVectors(targetPosition, bullet.position).normalize();
     bullet.lookAt(targetPosition);

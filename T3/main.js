@@ -94,7 +94,7 @@ var metal = textureLoader.load('./textures/trench.png')
 let planes = [];
 let color = "rgb(192,192,192)";
 let width = 80, length = 100, height = 30;
-for (let i = 0; i < 25; i++) {
+for (let i = 0; i < 20; i++) {
   let newPlane = createGroundPlane(width, length, 10, 10, color);
   addWalls(newPlane, width, length, height, color);
   addElements(newPlane, width, length, height, color);
@@ -345,7 +345,10 @@ function render() {
     for (let i = 0; i < turrets.length; i++) {
       turretShotClocks[i].getDelta();
       if (turretShotClocks[i].elapsedTime >= 4.5-airplaneSpeed/3-i*0.1 && !turrets[i].hit && airplane.obj.position.z - turrets[i].obj.position.z > 100) {
-        fireShot(turrets[i].obj, airplane.obj, turretShots, scene);
+        let airplanePos = airplane.obj.position;
+        let airplaneDist = Math.abs(airplanePos.z - turrets[i].obj.position.z);
+        let offset = 100 / (1+Math.exp(-0.01 * (airplaneDist-500))) - 0.5;
+        fireShot(turrets[i].obj, airplane.obj, turretShots, scene, offset);
         let distanceTurret = camera.position.distanceTo(turrets[i].obj.position);
         const normalizedDistance = Math.min(distanceTurret / 1500, 1);
         const volume = 0.8 * (1 - normalizedDistance);
@@ -499,6 +502,7 @@ function setupKeyControls() {
       case "Escape":
       stopGame = true;
       gameCanvas.style.cursor = '';
+      muteControl();
       break;
       case "s":
       muteControl();
@@ -643,6 +647,7 @@ function onMouseDown(event)
     // Resume the simulation if it was paused
     stopGame = false;
     gameCanvas.style.cursor = cursorStyle;
+    muteControl();
   } else {
     mouseIsDown = true;
   }

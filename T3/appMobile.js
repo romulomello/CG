@@ -70,8 +70,19 @@ scene.add(skybox);
 var raycaster = new THREE.Raycaster();
 let pointer = new THREE.Vector2();
 
+
+
 orbit = new OrbitControls( camera, renderer.domElement ); // Habilita o mouse
 window.addEventListener('resize', function () { onWindowResize(camera, renderer) }, false);
+
+window.addEventListener('resize', function() {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  renderer.setSize(width, height);
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+});
+
 
 //mouse to joystick
 // joystickContainer.addEventListener('touchstart', onTouchStart, false);
@@ -101,7 +112,7 @@ var metal = textureLoader.load('./textures/trench.png')
 let planes = [];
 let color = "rgb(192,192,192)";
 let width = 80, length = 100, height = 30;
-for (let i = 0; i < 25; i++) {
+for (let i = 0; i < 20; i++) {
   let newPlane = createGroundPlane(width, length, 10, 10, color);
   addWalls(newPlane, width, length, height, color);
   addElements(newPlane, width, length, height, color);
@@ -119,7 +130,7 @@ for (let i = 0; i < 25; i++) {
 let objects_rc = [];
 let plane_rc, planeGeometry, planeMaterial;
 let rc_offset = 200;
-planeGeometry = new THREE.PlaneGeometry(width*5, height*5);
+planeGeometry = new THREE.PlaneGeometry(width*8, height*8);
 planeMaterial = new THREE.MeshLambertMaterial();
 planeMaterial.side = THREE.DoubleSide;
 planeMaterial.transparent = true;
@@ -352,7 +363,10 @@ function render() {
     for (let i = 0; i < turrets.length; i++) {
       turretShotClocks[i].getDelta();
       if (turretShotClocks[i].elapsedTime >= 4.5-airplaneSpeed/3-i*0.1 && !turrets[i].hit && airplane.obj.position.z - turrets[i].obj.position.z > 100) {
-        fireShot(turrets[i].obj, airplane.obj, turretShots, scene);
+        let airplanePos = airplane.obj.position;
+        let airplaneDist = Math.abs(airplanePos.z - turrets[i].obj.position.z);
+        let offset = 100 / (1+Math.exp(-0.01 * (airplaneDist-500))) - 0.5;
+        fireShot(turrets[i].obj, airplane.obj, turretShots, scene, offset);
         let distanceTurret = camera.position.distanceTo(turrets[i].obj.position);
         const normalizedDistance = Math.min(distanceTurret / 1500, 1);
         const volume = 0.8 * (1 - normalizedDistance);
@@ -559,53 +573,60 @@ function controlAirplaneBullets(speed) {
   });
 }
 
-function controlAirplane(point, camera) {
+function controlAirplane(pointer, camera) {
+  // update the picking ray with the camera and pointer position
+  raycaster.setFromCamera(pointer, camera);
+  // calculate objects intersecting the picking ray
+  var intersects = raycaster.intersectObjects(objects_rc, true);
+  if (intersects.length > 0) // Check if there is a intersection
+  {
+    let point = intersects[0].point; // Pick the point where interception occurrs
+    var targetX = airplane.obj.position.x + (point.x - airplane.obj.position.x) * mouseDelay;
+    var targetY = airplane.obj.position.y + (point.y - airplane.obj.position.y) * mouseDelay;
 
-  var targetX = airplane.obj.position.x + ((point.x*50) - airplane.obj.position.x) * mouseDelay;
-  var targetY = airplane.obj.position.y + ((point.y*50) - airplane.obj.position.y) * mouseDelay;
+    targetX = Math.max(-width/2+10, Math.min(width/2-10, targetX));
+    targetY = Math.max(18, Math.min(height+10, targetY));
 
-  targetX = Math.max(-width/2+10, Math.min(width/2-10, targetX));
-  targetY = Math.max(18, Math.min(height+10, targetY));
+    var positionChanged = (targetX !== airplane.obj.position.x) || (targetY !== airplane.obj.position.y);
 
-  var positionChanged = (targetX !== airplane.obj.position.x) || (targetY !== airplane.obj.position.y);
+    airplane.obj.position.x = targetX;
+    airplane.obj.position.y = targetY;
 
-  airplane.obj.position.x = targetX;
-  airplane.obj.position.y = targetY;
+    target.position.x = point.x;
+    target.position.y = point.y;
 
-  target.position.x = point.x*30;
-  target.position.y = point.y*40;
-
-  if (positionChanged) {
-    var angle = Math.atan2(Math.abs(point.y - airplane.obj.position.y), point.x - airplane.obj.position.x);
-    var angleX = Math.atan2(point.y - airplane.obj.position.y, Math.abs(point.x - airplane.obj.position.x));
-    var smoothness = 0.4;
-    var rotationZ = (angle - Math.PI / 2) * smoothness;
-    var rotationY = Math.atan2(point.x - airplane.obj.position.x, Math.abs(point.y - airplane.obj.position.y)) * -1 / 10; 
-    var rotationX = angleX * 0.15;
-    
-    // Criar quaternions para as rotações em cada eixo
-    var quaternionX = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), rotationX);
-    var quaternionY = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), rotationY);
-    var quaternionZ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), rotationZ);
-    
-    // Multiplicar os quaternions em ordem para combinar as rotações
-    var quaternion = quaternionZ.multiply(quaternionY).multiply(quaternionX);
-    
-  // Aplicar o quaternion de rotação ao avião
-  airplane.obj.quaternion.copy(quaternion);
-  invisibleAirplane.obj.quaternion.copy(quaternion);
-  } else {
-    // Rotação nula quando não houver mudança de posição
-    airplane.obj.rotation.set(0, 0, 0);
-    invisibleAirplane.obj.rotation.set(0, 0, 0);
+    if (positionChanged) {
+      var angle = Math.atan2(Math.abs(point.y - airplane.obj.position.y), point.x - airplane.obj.position.x);
+      var angleX = Math.atan2(point.y - airplane.obj.position.y, Math.abs(point.x - airplane.obj.position.x));
+      var smoothness = 0.4;
+      var rotationZ = (angle - Math.PI / 2) * smoothness;
+      var rotationY = Math.atan2(point.x - airplane.obj.position.x, Math.abs(point.y - airplane.obj.position.y)) * -1 / 10; 
+      var rotationX = angleX * 0.15;
+      
+      // Criar quaternions para as rotações em cada eixo
+      var quaternionX = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), rotationX);
+      var quaternionY = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), rotationY);
+      var quaternionZ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), rotationZ);
+      
+      // Multiplicar os quaternions em ordem para combinar as rotações
+      var quaternion = quaternionZ.multiply(quaternionY).multiply(quaternionX);
+      
+    // Aplicar o quaternion de rotação ao avião
+    airplane.obj.quaternion.copy(quaternion);
+    invisibleAirplane.obj.quaternion.copy(quaternion);
+    } else {
+      // Rotação nula quando não houver mudança de posição
+      airplane.obj.rotation.set(0, 0, 0);
+      invisibleAirplane.obj.rotation.set(0, 0, 0);
+    }
   }
 }
 
 function onTouchMove(event) 
 {
   event.preventDefault();
-  pointer.x =  (event.clientX / window.innerWidth) * 2 - 1;
-  pointer.y = -(event.clientY / window.innerHeight) * 2 + 1.1;
+  //pointer.x =  (event.clientX / window.innerWidth) * 2 - 1;
+  //pointer.y = -(event.clientY / window.innerHeight) * 2 + 1.1;
 }
 
 // function onTouchStart(event)
@@ -643,35 +664,6 @@ function muteControl() {
     setVolume(audioTurretShot, 0);
     isMuted = true;
   }
-}
-
-// function onTouchStart(event) {
-//   event.preventDefault();
-//   const touch = event.touches[0];
-//   handleJoystickStart(touch.clientX, touch.clientY);
-// }
-
-// function onTouchMove(event) {
-//   event.preventDefault();
-//   const touch = event.touches[0];
-//   handleJoystickMove(touch.clientX, touch.clientY);
-// }
-
-// function onTouchEnd(event) {
-//   event.preventDefault();
-//   handleJoystickEnd();
-// }
-
-function handleJoystickStart(clientX, clientY) {
-  // Lógica de início do controle do joystick na tela
-}
-
-function handleJoystickMove(clientX, clientY) {
-  // Lógica de movimento do joystick na tela
-}
-
-function handleJoystickEnd() {
-  // Lógica de término do controle do joystick na tela
 }
 
 btnFire.addEventListener('touchstart', function() {
@@ -722,7 +714,6 @@ function addJoystick() {
     mode: "static",
     restJoystick: true,
     shape: "circle",
-    // position: { top: 20, left: 20 },
     position: { top: "60px", left: "60px" },
     dynamicPage: true,
   };
